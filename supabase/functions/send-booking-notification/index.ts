@@ -10,9 +10,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Evolution API configuration
-const EVOLUTION_API_URL = Deno.env.get("EVOLUTION_API_URL") || "";
-const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY") || "";
+// n8n webhook URLs
+const N8N_WHATSAPP_WEBHOOK_URL = Deno.env.get("N8N_WHATSAPP_WEBHOOK_URL") || "";
 
 // Helper function to format phone number for WhatsApp
 function formatPhoneNumber(phone: string): string {
@@ -23,51 +22,45 @@ function formatPhoneNumber(phone: string): string {
   return cleaned;
 }
 
-// Send WhatsApp message via Evolution API
-async function sendWhatsAppMessage(
+// Send WhatsApp message via n8n webhook
+async function sendWhatsAppViaWebhook(
+  barbershopId: string,
   instanceName: string,
   phone: string,
-  message: string
+  message: string,
+  clientName: string,
+  serviceName: string,
+  bookingDate: string,
+  bookingTime: string,
+  barbershopName: string,
+  barbershopAddress?: string
 ): Promise<{ success: boolean; error?: string }> {
-  if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) {
-    return { success: false, error: "Evolution API not configured" };
+  if (!N8N_WHATSAPP_WEBHOOK_URL) {
+    return { success: false, error: "N8N WhatsApp webhook not configured" };
   }
 
-  const cleanUrl = EVOLUTION_API_URL.replace(/\/$/, "");
-  const formattedPhone = formatPhoneNumber(phone);
-
   try {
-    // Check instance connection status
-    const statusRes = await fetch(`${cleanUrl}/instance/connectionState/${instanceName}`, {
-      method: "GET",
-      headers: { "apikey": EVOLUTION_API_KEY },
-    });
-
-    if (!statusRes.ok) {
-      return { success: false, error: "WhatsApp instance not found" };
-    }
-
-    const statusData = await statusRes.json();
-    if (statusData.state !== "open" && statusData.state !== "connected") {
-      return { success: false, error: `WhatsApp not connected: ${statusData.state}` };
-    }
-
-    // Send message
-    const sendRes = await fetch(`${cleanUrl}/message/sendText/${instanceName}`, {
+    const response = await fetch(N8N_WHATSAPP_WEBHOOK_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "apikey": EVOLUTION_API_KEY,
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        number: formattedPhone,
-        text: message,
+        barbershopId,
+        instanceName,
+        phone: formatPhoneNumber(phone),
+        message,
+        clientName,
+        serviceName,
+        bookingDate,
+        bookingTime,
+        barbershopName,
+        barbershopAddress,
+        timestamp: new Date().toISOString(),
       }),
     });
 
-    if (!sendRes.ok) {
-      const errorText = await sendRes.text();
-      return { success: false, error: `Failed to send: ${errorText}` };
+    if (!response.ok) {
+      const errorText = await response.text();
+      return { success: false, error: `Webhook error: ${response.status} - ${errorText}` };
     }
 
     return { success: true };
@@ -142,6 +135,8 @@ const handler = async (req: Request): Promise<Response> => {
     const clientPhone = booking.profiles?.phone;
     const clientEmail = booking.profiles?.email;
     const barbershopSlug = booking.barbershops?.slug;
+    const barbershopName = booking.barbershops?.name || "Barbearia";
+    const barbershopAddress = booking.barbershops?.address;
     
     const date = booking.booking_date;
     const time = booking.booking_time;
@@ -385,18 +380,18 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Send WhatsApp to client via Evolution API
+    // Send WhatsApp to client via n8n webhook
     const whatsappEnabled = barbershopSettings?.whatsapp_enabled || notificationSettings.send_whatsapp;
     const whatsappConfirmationEnabled = barbershopSettings?.whatsapp_send_booking_confirmation !== false;
     
     if (whatsappEnabled && whatsappConfirmationEnabled && clientPhone && barbershopSlug) {
-      console.log("Sending WhatsApp via Evolution API...");
+      console.log("Sending WhatsApp via n8n webhook...");
       
       const whatsappMessage = `✅ *Agendamento Confirmado!*
 
 Olá ${clientName}! 👋
 
-Seu agendamento na *${barbershop?.name || 'Barbearia'}* foi confirmado:
+Seu agendamento na *${barbershopName}* foi confirmado:
 
 📋 *Serviço:* ${service}
 💇 *Profissional:* ${professional}
@@ -404,14 +399,25 @@ Seu agendamento na *${barbershop?.name || 'Barbearia'}* foi confirmado:
 ⏰ *Horário:* ${time}
 💰 *Valor:* R$ ${price.toFixed(2)}
 
-${barbershop?.address ? `📍 *Endereço:* ${barbershop.address}` : ''}
+${barbershopAddress ? `📍 *Endereço:* ${barbershopAddress}` : ''}
 
 Esperamos você! 😊`;
 
-      const whatsappResult = await sendWhatsAppMessage(barbershopSlug, clientPhone, whatsappMessage);
+      const whatsappResult = await sendWhatsAppViaWebhook(
+        barbershopId,
+        barbershopSlug,
+        clientPhone,
+        whatsappMessage,
+        clientName,
+        service,
+        formattedDate,
+        time,
+        barbershopName,
+        barbershopAddress
+      );
       
       if (whatsappResult.success) {
-        console.log("✅ WhatsApp sent via Evolution API");
+        console.log("✅ WhatsApp sent via n8n webhook");
         await logNotification("whatsapp", clientPhone, "sent", JSON.stringify({ service, date: formattedDate, instance: barbershopSlug }));
       } else {
         console.error("❌ WhatsApp error:", whatsappResult.error);
@@ -491,7 +497,7 @@ Esperamos você! 😊`;
       }
     }
 
-    // Send WhatsApp to admin
+    // Send WhatsApp to admin via n8n webhook
     if (notificationSettings.admin_whatsapp && barbershopSlug) {
       const adminWhatsAppMessage = `🔔 *Novo Agendamento*
 
@@ -503,10 +509,20 @@ Esperamos você! 😊`;
 ⏰ *Horário:* ${time}
 💰 *Valor:* R$ ${price.toFixed(2)}`;
 
-      const adminWhatsAppResult = await sendWhatsAppMessage(barbershopSlug, notificationSettings.admin_whatsapp, adminWhatsAppMessage);
+      const adminWhatsAppResult = await sendWhatsAppViaWebhook(
+        barbershopId,
+        barbershopSlug,
+        notificationSettings.admin_whatsapp,
+        adminWhatsAppMessage,
+        clientName,
+        service,
+        formattedDate,
+        time,
+        barbershopName
+      );
       
       if (adminWhatsAppResult.success) {
-        console.log("✅ WhatsApp sent to admin");
+        console.log("✅ WhatsApp sent to admin via webhook");
       } else {
         console.error("❌ Admin WhatsApp error:", adminWhatsAppResult.error);
       }
