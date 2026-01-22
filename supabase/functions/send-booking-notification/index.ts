@@ -288,79 +288,53 @@ const handler = async (req: Request): Promise<Response> => {
       try {
         const emailHtml = `
         <!DOCTYPE html>
-        <html>
+        <html lang="pt-BR">
         <head>
           <meta charset="utf-8">
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-            .details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
-            .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
-            .detail-label { font-weight: bold; color: #667eea; }
-            .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
-            .message-box { background: #e8eaf6; padding: 15px; border-left: 4px solid #667eea; margin: 20px 0; }
-          </style>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
         </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>🎉 Agendamento Confirmado!</h1>
-            </div>
-            <div class="content">
-              <div class="message-box">
-                <p>${customMessage}</p>
-              </div>
-              
-              <div class="details">
-                <h2 style="color: #667eea; margin-top: 0;">📋 Detalhes do Agendamento</h2>
-                <div class="detail-row">
-                  <span class="detail-label">📅 Data:</span>
-                  <span>${formattedDate}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="detail-label">🕐 Horário:</span>
-                  <span>${time}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="detail-label">✂️ Serviço:</span>
-                  <span>${service}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="detail-label">👤 Profissional:</span>
-                  <span>${professional}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="detail-label">💰 Valor:</span>
-                  <span>R$ ${price.toFixed(2)}</span>
-                </div>
-              </div>
-
-              ${barbershop?.whatsapp ? `
-                <div style="text-align: center; margin: 30px 0;">
-                  <a href="https://wa.me/${(() => {
-                    let clean = barbershop.whatsapp.replace(/\D/g, '');
-                    if (clean.startsWith('55') && clean.length > 11) clean = clean.substring(2);
-                    return '55' + clean;
-                  })()}" 
-                     style="background: #25D366; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
-                    💬 Entrar em Contato via WhatsApp
-                  </a>
-                </div>
-              ` : ''}
-
-              ${barbershop?.address ? `
-                <p style="text-align: center; color: #666;">
-                  📍 ${barbershop.address}
-                </p>
-              ` : ''}
-            </div>
-            <div class="footer">
-              <p>Este é um email automático. Caso precise de ajuda, entre em contato conosco.</p>
-              <p>${barbershop?.name || 'Barbearia'}</p>
-            </div>
-          </div>
+        <body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
+            <tr>
+              <td align="center">
+                <table width="500" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);">
+                  <tr>
+                    <td style="padding: 24px 32px 16px; text-align: center; border-bottom: 1px solid #e5e5e5;">
+                      <h1 style="margin: 0; font-size: 18px; font-weight: 600; color: #1a1a2e;">${barbershopName} - Confirmacao de Agendamento</h1>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 24px 32px;">
+                      <table width="100%" cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td style="vertical-align: top; width: 80px; padding-right: 16px;">
+                            ${barbershop?.logo_url ? `
+                            <div style="width: 72px; height: 72px; background-color: #1a1a2e; border-radius: 8px; overflow: hidden;">
+                              <img src="${barbershop.logo_url}" alt="${barbershopName}" style="width: 100%; height: 100%; object-fit: contain;" />
+                            </div>
+                            ` : `<div style="width: 72px; height: 72px; background-color: #1a1a2e; border-radius: 8px;"></div>`}
+                            <p style="margin: 8px 0 0; font-size: 11px; color: #666; text-align: center;">${barbershopName}</p>
+                          </td>
+                          <td style="vertical-align: top;">
+                            <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Servico:</strong> ${service}</p>
+                            <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Data:</strong> ${formattedDate} ${time}</p>
+                            <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Profissional:</strong> ${professional}</p>
+                            <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Valor:</strong> R$ ${price.toFixed(2).replace('.', ',')}</p>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 16px 32px 24px; text-align: center; border-top: 1px solid #e5e5e5;">
+                      <p style="margin: 0 0 4px; font-size: 12px; color: #888;">Enviado por ImperioApp</p>
+                      ${barbershopAddress ? `<p style="margin: 0; font-size: 11px; color: #aaa;">${barbershopAddress}</p>` : ''}
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
         </body>
         </html>
       `;
@@ -368,14 +342,14 @@ const handler = async (req: Request): Promise<Response> => {
         const emailResponse = await resend.emails.send({
           from: "Barbearia <onboarding@resend.dev>",
           to: [clientEmail],
-          subject: `✅ Agendamento Confirmado - ${formattedDate} às ${time}`,
+          subject: `${barbershopName} - Confirmacao de Agendamento`,
           html: emailHtml,
         });
 
-        console.log("✅ Email sent to client:", clientEmail);
-        await logNotification("email", clientEmail, "sent", JSON.stringify({ subject: "Agendamento Confirmado", service, date: formattedDate }));
+        console.log("Email sent to client:", clientEmail);
+        await logNotification("email", clientEmail, "sent", JSON.stringify({ subject: "Confirmacao de Agendamento", service, date: formattedDate }));
       } catch (emailError: any) {
-        console.error("❌ Email error:", emailError.message);
+        console.error("Email error:", emailError.message);
         await logNotification("email", clientEmail, "failed", JSON.stringify({ service, date: formattedDate }), emailError.message);
       }
     }
@@ -387,21 +361,21 @@ const handler = async (req: Request): Promise<Response> => {
     if (whatsappEnabled && whatsappConfirmationEnabled && clientPhone && barbershopSlug) {
       console.log("Sending WhatsApp via n8n webhook...");
       
-      const whatsappMessage = `✅ *Agendamento Confirmado!*
+      const whatsappMessage = `*${barbershopName} - Confirmacao de Agendamento*
 
-Olá ${clientName}! 👋
+Ola ${clientName}
 
-Seu agendamento na *${barbershopName}* foi confirmado:
+Seu agendamento foi confirmado.
 
-📋 *Serviço:* ${service}
-💇 *Profissional:* ${professional}
-📅 *Data:* ${formattedDateLong}
-⏰ *Horário:* ${time}
-💰 *Valor:* R$ ${price.toFixed(2)}
+Servico: ${service}
+Data: ${formattedDateLong}
+Horario: ${time}
+Profissional: ${professional}
+Valor: R$ ${price.toFixed(2).replace('.', ',')}
 
-${barbershopAddress ? `📍 *Endereço:* ${barbershopAddress}` : ''}
+${barbershopAddress ? barbershopAddress : ''}
 
-Esperamos você! 😊`;
+Enviado por ImperioApp`;
 
       const whatsappResult = await sendWhatsAppViaWebhook(
         barbershopId,
