@@ -1,0 +1,238 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 
+ * Global Design System with Light/Dark Theme Support
+ * All colors MUST be HSL values (without hsl() wrapper for Tailwind compatibility)
+ */
+
+@layer base {
+  /* 
+   * LIGHT THEME - Clean, Modern, High Contrast
+   * Neutral whites with clear separation between surfaces
+   */
+  :root {
+    /* Main background - very light neutral gray (not warm) */
+    --background: 220 14% 96%;
+    /* Primary text - deep neutral (high contrast) */
+    --foreground: 220 13% 12%;
+
+    /* Cards/surfaces - pure white for contrast against background */
+    --card: 0 0% 100%;
+    --card-foreground: 220 13% 12%;
+
+    /* Popovers/dropdowns - pure white */
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 13% 12%;
+
+    /* Gold primary brand color - rich and saturated */
+    --primary: 43 80% 42%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary - cool gray */
+    --secondary: 220 14% 92%;
+    --secondary-foreground: 220 13% 18%;
+
+    /* Muted - for disabled/placeholder states */
+    --muted: 220 14% 94%;
+    --muted-foreground: 220 10% 40%;
+
+    /* Accent - light gold tint */
+    --accent: 43 60% 92%;
+    --accent-foreground: 43 80% 28%;
+
+    /* Destructive */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Success */
+    --success: 142 64% 35%;
+    --success-foreground: 0 0% 100%;
+
+    /* Warning */
+    --warning: 38 92% 50%;
+    --warning-foreground: 220 13% 12%;
+
+    /* Info */
+    --info: 199 80% 45%;
+    --info-foreground: 0 0% 100%;
+
+    /* Borders - visible cool gray */
+    --border: 220 13% 86%;
+    /* Input backgrounds - white */
+    --input: 0 0% 100%;
+    /* Focus ring */
+    --ring: 43 80% 42%;
+    /* Overlay backdrop */
+    --overlay: 220 13% 10%;
+
+    --radius: 0.75rem;
+
+    /* Gold variants */
+    --gold: 43 80% 42%;
+    --gold-light: 43 80% 52%;
+    --gold-dark: 43 80% 32%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(43 80% 35%), hsl(43 80% 45%));
+    --gradient-shine: linear-gradient(90deg, transparent, hsla(43, 80%, 42%, 0.15), transparent);
+
+    /* Shadows - cool tinted for depth */
+    --shadow-color: 220 15% 50%;
+    --shadow-gold: 0 4px 20px hsla(43, 80%, 42%, 0.25);
+    --shadow-elevation: 0 4px 12px -2px hsla(220, 15%, 50%, 0.15), 0 2px 6px -2px hsla(220, 15%, 50%, 0.1);
+    --shadow-card: 0 1px 3px hsla(220, 15%, 50%, 0.1), 0 1px 2px hsla(220, 15%, 50%, 0.08), 0 0 0 1px hsla(220, 15%, 50%, 0.05);
+    --shadow-dropdown: 0 10px 40px -10px hsla(220, 15%, 20%, 0.25), 0 10px 20px -15px hsla(220, 15%, 20%, 0.2);
+
+    /* Chart colors */
+    --chart-1: 43 80% 42%;
+    --chart-2: 199 80% 45%;
+    --chart-3: 142 64% 35%;
+    --chart-4: 38 92% 50%;
+    --chart-5: 280 60% 55%;
+
+    /* Sidebar/Header */
+    --sidebar: 0 0% 100%;
+    --sidebar-foreground: 220 13% 18%;
+    --header: 0 0% 100%;
+    --header-foreground: 220 13% 12%;
+
+    /* Table */
+    --table-row-alt: 220 14% 97%;
+    --table-row-hover: 43 50% 95%;
+  }
+
+  /* 
+   * DARK THEME - Rich, Premium Black & Gold
+   * Deep blacks with gold accents
+   */
+  .dark {
+    --background: 0 0% 5%;
+    --foreground: 0 0% 95%;
+
+    --card: 0 0% 8%;
+    --card-foreground: 0 0% 95%;
+
+    --popover: 0 0% 8%;
+    --popover-foreground: 0 0% 95%;
+
+    /* Gold primary - brighter for dark mode */
+    --primary: 43 74% 52%;
+    --primary-foreground: 0 0% 5%;
+
+    --secondary: 0 0% 14%;
+    --secondary-foreground: 0 0% 95%;
+
+    --muted: 0 0% 14%;
+    --muted-foreground: 0 0% 60%;
+
+    --accent: 43 74% 52%;
+    --accent-foreground: 0 0% 5%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 70% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 9%;
+
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+
+    --border: 0 0% 18%;
+    --input: 0 0% 14%;
+    --ring: 43 74% 52%;
+    --overlay: 0 0% 0%;
+
+    /* Gold variants */
+    --gold: 43 74% 52%;
+    --gold-light: 43 74% 62%;
+    --gold-dark: 43 74% 42%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(43 74% 42%), hsl(43 74% 52%));
+    --gradient-shine: linear-gradient(90deg, transparent, hsla(43, 74%, 52%, 0.3), transparent);
+
+    /* Shadows */
+    --shadow-color: 0 0% 0%;
+    --shadow-gold: 0 4px 20px hsla(43, 74%, 52%, 0.3);
+    --shadow-elevation: 0 10px 30px -10px hsla(0, 0%, 0%, 0.5);
+    --shadow-card: 0 2px 8px hsla(0, 0%, 0%, 0.4);
+    --shadow-dropdown: 0 10px 38px -10px hsla(0, 0%, 0%, 0.6), 0 10px 20px -15px hsla(0, 0%, 0%, 0.4);
+
+    /* Chart colors */
+    --chart-1: 43 74% 55%;
+    --chart-2: 199 89% 55%;
+    --chart-3: 142 76% 50%;
+    --chart-4: 38 92% 55%;
+    --chart-5: 280 65% 65%;
+
+    /* Sidebar/Header */
+    --sidebar: 0 0% 6%;
+    --sidebar-foreground: 0 0% 90%;
+    --header: 0 0% 5%;
+    --header-foreground: 0 0% 95%;
+
+    /* Table */
+    --table-row-alt: 0 0% 7%;
+    --table-row-hover: 43 50% 12%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold text-foreground;
+  }
+
+  /* Smooth transitions for theme switching */
+  html.theme-transition,
+  html.theme-transition *,
+  html.theme-transition *::before,
+  html.theme-transition *::after {
+    transition: background-color 0.3s ease-in-out, 
+                border-color 0.3s ease-in-out, 
+                color 0.3s ease-in-out,
+                box-shadow 0.3s ease-in-out !important;
+    transition-delay: 0s !important;
+  }
+}
+
+/* Utility to hide scrollbar */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Focus visible styles for accessibility */
+@layer utilities {
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+}
+
+/* Card elevation in light mode */
+@layer components {
+  .card-elevated {
+    @apply bg-card shadow-card border border-border;
+  }
+  
+  .dropdown-elevated {
+    @apply bg-popover shadow-dropdown border border-border;
+  }
+}

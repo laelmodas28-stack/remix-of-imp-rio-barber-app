@@ -1,0 +1,26 @@
+node_modules
+npm-debug.log
+dist
+.git
+.gitignore
+.env
+.env.local
+.env.*.local
+.vscode
+.idea
+*.log
+.DS_Store
+coverage
+.nyc_output
+.cache
+temp
+tmp
+*.swp
+*.swo
+*~
+senha acesso
+README.md
+MARK_AS_OFFICIAL.sql
+scripts
+supabase
+bun.lockb

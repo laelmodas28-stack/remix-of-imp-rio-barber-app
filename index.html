@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+    <title>Agende seu horário - Barbearia</title>
+    <meta name="description" content="Agende seu horário com os melhores profissionais. Atendimento de excelência." />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <meta property="og:title" content="Agende seu horário - Barbearia" />
+    <meta property="og:description" content="Agende seu horário com os melhores profissionais" />
+    <meta property="og:type" content="website" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    
+    <!-- Anti-FOUC: Apply theme before first paint -->
+    <script>
+      (function() {
+        const storageKey = 'imperio-theme';
+        const theme = localStorage.getItem(storageKey);
+        
+        // Determine which theme to apply
+        let resolvedTheme = theme;
+        
+        if (!theme || theme === 'system') {
+          // Check system preference
+          resolvedTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        
+        // Apply dark class if needed (before first paint)
+        if (resolvedTheme === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+        
+        // Set color-scheme for native elements
+        document.documentElement.style.colorScheme = resolvedTheme;
+      })();
+    </script>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
