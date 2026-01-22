@@ -16,6 +16,169 @@ interface BookingNotificationData {
   notificationType: NotificationType;
 }
 
+// Format date to Brazilian format DD/MM/YYYY
+function formatDateBR(dateStr: string): string {
+  // If already in DD/MM/YYYY format, return as is
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+    return dateStr;
+  }
+  // If in YYYY-MM-DD format, convert
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const [year, month, day] = dateStr.split('-');
+    return `${day}/${month}/${year}`;
+  }
+  return dateStr;
+}
+
+// Format time to 24h format HH:MM
+function formatTimeBR(timeStr: string): string {
+  // Remove seconds if present
+  return timeStr.substring(0, 5);
+}
+
+// Generate corporate HTML email template
+function generateEmailHTML(data: {
+  barbershopName: string;
+  barbershopAddress: string;
+  barbershopLogoUrl?: string;
+  notificationType: NotificationType;
+  serviceName: string;
+  bookingDate: string;
+  bookingTime: string;
+  professionalName: string;
+  price?: number;
+  clientName: string;
+}): string {
+  const typeLabels: Record<NotificationType, string> = {
+    confirmation: "Confirmacao de Agendamento",
+    cancellation: "Cancelamento de Agendamento",
+    reminder: "Lembrete de Agendamento",
+  };
+
+  const formattedDate = formatDateBR(data.bookingDate);
+  const formattedTime = formatTimeBR(data.bookingTime);
+  const priceFormatted = data.price ? `R$ ${data.price.toFixed(2).replace('.', ',')}` : '';
+
+  return `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${data.barbershopName} - ${typeLabels[data.notificationType]}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" style="width: 100%; max-width: 500px; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 24px 32px 16px; text-align: center; border-bottom: 1px solid #e5e5e5;">
+              <h1 style="margin: 0; font-size: 18px; font-weight: 600; color: #1a1a2e;">
+                ${data.barbershopName} - ${typeLabels[data.notificationType]}
+              </h1>
+            </td>
+          </tr>
+          <!-- Content -->
+          <tr>
+            <td style="padding: 24px 32px;">
+              <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="vertical-align: top; width: 80px; padding-right: 16px;">
+                    ${data.barbershopLogoUrl ? `
+                    <div style="width: 72px; height: 72px; background-color: #1a1a2e; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                      <img src="${data.barbershopLogoUrl}" alt="${data.barbershopName}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                    </div>
+                    ` : `
+                    <div style="width: 72px; height: 72px; background-color: #1a1a2e; border-radius: 8px;"></div>
+                    `}
+                    <p style="margin: 8px 0 0; font-size: 11px; color: #666; text-align: center;">${data.barbershopName}</p>
+                  </td>
+                  <td style="vertical-align: top;">
+                    <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                      <tr>
+                        <td style="padding: 4px 0;">
+                          <span style="font-size: 14px; color: #333;"><strong>Servico:</strong> ${data.serviceName}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 4px 0;">
+                          <span style="font-size: 14px; color: #333;"><strong>Data:</strong> ${formattedDate} ${formattedTime}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 4px 0;">
+                          <span style="font-size: 14px; color: #333;"><strong>Profissional:</strong> ${data.professionalName}</span>
+                        </td>
+                      </tr>
+                      ${priceFormatted ? `
+                      <tr>
+                        <td style="padding: 4px 0;">
+                          <span style="font-size: 14px; color: #333;"><strong>Valor:</strong> ${priceFormatted}</span>
+                        </td>
+                      </tr>
+                      ` : ''}
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 16px 32px 24px; text-align: center; border-top: 1px solid #e5e5e5;">
+              <p style="margin: 0 0 4px; font-size: 12px; color: #888;">Enviado por ImperioApp</p>
+              ${data.barbershopAddress ? `<p style="margin: 0; font-size: 11px; color: #aaa;">${data.barbershopAddress}</p>` : ''}
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+// Generate WhatsApp message template (no emojis, clean format)
+function generateWhatsAppMessage(data: {
+  notificationType: NotificationType;
+  barbershopName: string;
+  clientName: string;
+  serviceName: string;
+  bookingDate: string;
+  bookingTime: string;
+  professionalName: string;
+  price?: number;
+  barbershopAddress?: string;
+}): string {
+  const typeLabels: Record<NotificationType, string> = {
+    confirmation: "Confirmacao de Agendamento",
+    cancellation: "Cancelamento de Agendamento",
+    reminder: "Lembrete de Agendamento",
+  };
+
+  const formattedDate = formatDateBR(data.bookingDate);
+  const formattedTime = formatTimeBR(data.bookingTime);
+  const priceFormatted = data.price ? `R$ ${data.price.toFixed(2).replace('.', ',')}` : '';
+
+  let message = `*${data.barbershopName} - ${typeLabels[data.notificationType]}*\n\n`;
+  message += `Cliente: ${data.clientName}\n`;
+  message += `Servico: ${data.serviceName}\n`;
+  message += `Data: ${formattedDate}\n`;
+  message += `Horario: ${formattedTime}\n`;
+  message += `Profissional: ${data.professionalName}\n`;
+  if (priceFormatted) {
+    message += `Valor: ${priceFormatted}\n`;
+  }
+  message += `\nEnviado por ImperioApp`;
+  if (data.barbershopAddress) {
+    message += `\n${data.barbershopAddress}`;
+  }
+
+  return message;
+}
+
 /**
  * Sends booking notifications via webhooks
  */
@@ -37,24 +200,36 @@ export async function sendBookingNotifications(data: BookingNotificationData): P
   // Fetch barbershop info
   const { data: barbershop } = await supabase
     .from("barbershops")
-    .select("slug, name, address")
+    .select("slug, name, address, logo_url")
     .eq("id", data.barbershopId)
     .single();
 
   const instanceName = barbershop?.slug || `barbershop-${data.barbershopId.substring(0, 8)}`;
   const barbershopAddress = barbershop?.address || "";
   const barbershopName = barbershop?.name || "Barbearia";
+  const barbershopLogoUrl = barbershop?.logo_url || "";
 
   const typeLabels: Record<NotificationType, string> = {
-    confirmation: "Confirmação de Agendamento",
+    confirmation: "Confirmacao de Agendamento",
     cancellation: "Cancelamento de Agendamento",
     reminder: "Lembrete de Agendamento",
   };
 
   // Send Email webhook notification
   try {
-    const emailContent = `${typeLabels[data.notificationType]}: ${data.serviceName} em ${data.bookingDate} às ${data.bookingTime}`;
-    const emailSubject = typeLabels[data.notificationType];
+    const emailSubject = `${barbershopName} - ${typeLabels[data.notificationType]}`;
+    const emailHtml = generateEmailHTML({
+      barbershopName,
+      barbershopAddress,
+      barbershopLogoUrl,
+      notificationType: data.notificationType,
+      serviceName: data.serviceName,
+      bookingDate: data.bookingDate,
+      bookingTime: data.bookingTime,
+      professionalName: data.professionalName,
+      price: data.price,
+      clientName: data.clientName,
+    });
 
     console.log(`[BookingNotifications] Calling EMAIL webhook for ${data.notificationType}`);
 
@@ -68,12 +243,12 @@ export async function sendBookingNotifications(data: BookingNotificationData): P
           client_phone: data.clientPhone,
           service_name: data.serviceName,
           professional_name: data.professionalName,
-          booking_date: data.bookingDate,
-          booking_time: data.bookingTime,
+          booking_date: formatDateBR(data.bookingDate),
+          booking_time: formatTimeBR(data.bookingTime),
           barbershop_name: barbershopName,
           price: data.price,
           email_subject: emailSubject,
-          email_content: emailContent,
+          email_html: emailHtml,
         },
       },
     });
@@ -100,12 +275,17 @@ export async function sendBookingNotifications(data: BookingNotificationData): P
 
     console.log(`[BookingNotifications] Calling WHATSAPP webhook for ${data.notificationType}`);
 
-    const whatsappContent = `*${typeLabels[data.notificationType]}*\n\n` +
-      `👤 Cliente: ${data.clientName}\n` +
-      `✂️ Serviço: ${data.serviceName}\n` +
-      `👨‍💼 Profissional: ${data.professionalName}\n` +
-      `📅 Data: ${data.bookingDate}\n` +
-      `⏰ Horário: ${data.bookingTime}`;
+    const whatsappContent = generateWhatsAppMessage({
+      notificationType: data.notificationType,
+      barbershopName,
+      clientName: data.clientName,
+      serviceName: data.serviceName,
+      bookingDate: data.bookingDate,
+      bookingTime: data.bookingTime,
+      professionalName: data.professionalName,
+      price: data.price,
+      barbershopAddress,
+    });
 
     const { error } = await supabase.functions.invoke("send-whatsapp-webhook", {
       body: {
@@ -115,8 +295,8 @@ export async function sendBookingNotifications(data: BookingNotificationData): P
         message: whatsappContent,
         clientName: data.clientName,
         serviceName: data.serviceName,
-        bookingDate: data.bookingDate,
-        bookingTime: data.bookingTime,
+        bookingDate: formatDateBR(data.bookingDate),
+        bookingTime: formatTimeBR(data.bookingTime),
         barbershopName,
         barbershopAddress,
       },

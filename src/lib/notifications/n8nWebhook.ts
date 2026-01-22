@@ -23,9 +23,169 @@ interface N8nSettings {
   send_booking_reminder: boolean | null;
 }
 
+// Format date to Brazilian format DD/MM/YYYY
+function formatDateBR(dateStr: string): string {
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+    return dateStr;
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const [year, month, day] = dateStr.split('-');
+    return `${day}/${month}/${year}`;
+  }
+  return dateStr;
+}
+
+// Format time to 24h format HH:MM
+function formatTimeBR(timeStr: string): string {
+  return timeStr.substring(0, 5);
+}
+
+// Generate corporate HTML email template (no emojis)
+function generateCorporateEmailHTML(data: {
+  barbershopName: string;
+  barbershopAddress?: string;
+  barbershopLogoUrl?: string;
+  title: string;
+  serviceName: string;
+  bookingDate: string;
+  bookingTime: string;
+  professionalName: string;
+  price?: number;
+  isTest?: boolean;
+}): string {
+  const formattedDate = formatDateBR(data.bookingDate);
+  const formattedTime = formatTimeBR(data.bookingTime);
+  const priceFormatted = data.price ? `R$ ${data.price.toFixed(2).replace('.', ',')}` : '';
+
+  return `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${data.barbershopName} - ${data.title}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" style="width: 100%; max-width: 500px; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 24px 32px 16px; text-align: center; border-bottom: 1px solid #e5e5e5;">
+              <h1 style="margin: 0; font-size: 18px; font-weight: 600; color: #1a1a2e;">
+                ${data.barbershopName} - ${data.title}
+              </h1>
+            </td>
+          </tr>
+          <!-- Content -->
+          <tr>
+            <td style="padding: 24px 32px;">
+              <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="vertical-align: top; width: 80px; padding-right: 16px;">
+                    ${data.barbershopLogoUrl ? `
+                    <div style="width: 72px; height: 72px; background-color: #1a1a2e; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                      <img src="${data.barbershopLogoUrl}" alt="${data.barbershopName}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                    </div>
+                    ` : `
+                    <div style="width: 72px; height: 72px; background-color: #1a1a2e; border-radius: 8px;"></div>
+                    `}
+                    <p style="margin: 8px 0 0; font-size: 11px; color: #666; text-align: center;">${data.barbershopName}</p>
+                  </td>
+                  <td style="vertical-align: top;">
+                    <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                      <tr>
+                        <td style="padding: 4px 0;">
+                          <span style="font-size: 14px; color: #333;"><strong>Servico:</strong> ${data.serviceName}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 4px 0;">
+                          <span style="font-size: 14px; color: #333;"><strong>Data:</strong> ${formattedDate} ${formattedTime}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 4px 0;">
+                          <span style="font-size: 14px; color: #333;"><strong>Profissional:</strong> ${data.professionalName}</span>
+                        </td>
+                      </tr>
+                      ${priceFormatted ? `
+                      <tr>
+                        <td style="padding: 4px 0;">
+                          <span style="font-size: 14px; color: #333;"><strong>Valor:</strong> ${priceFormatted}</span>
+                        </td>
+                      </tr>
+                      ` : ''}
+                      ${data.isTest ? `
+                      <tr>
+                        <td style="padding: 12px 0 4px;">
+                          <span style="font-size: 12px; color: #28a745;">Sistema de notificacoes funcionando corretamente!</span>
+                        </td>
+                      </tr>
+                      ` : ''}
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 16px 32px 24px; text-align: center; border-top: 1px solid #e5e5e5;">
+              <p style="margin: 0 0 4px; font-size: 12px; color: #888;">Enviado por ImperioApp</p>
+              ${data.barbershopAddress ? `<p style="margin: 0; font-size: 11px; color: #aaa;">${data.barbershopAddress}</p>` : ''}
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+// Generate WhatsApp message (no emojis, clean format)
+function generateCorporateWhatsAppMessage(data: {
+  title: string;
+  barbershopName: string;
+  clientName?: string;
+  serviceName: string;
+  bookingDate: string;
+  bookingTime: string;
+  professionalName: string;
+  price?: number;
+  barbershopAddress?: string;
+  isTest?: boolean;
+}): string {
+  const formattedDate = formatDateBR(data.bookingDate);
+  const formattedTime = formatTimeBR(data.bookingTime);
+  const priceFormatted = data.price ? `R$ ${data.price.toFixed(2).replace('.', ',')}` : '';
+
+  let message = `*${data.barbershopName} - ${data.title}*\n\n`;
+  if (data.clientName) {
+    message += `Cliente: ${data.clientName}\n`;
+  }
+  message += `Servico: ${data.serviceName}\n`;
+  message += `Data: ${formattedDate}\n`;
+  message += `Horario: ${formattedTime}\n`;
+  message += `Profissional: ${data.professionalName}\n`;
+  if (priceFormatted) {
+    message += `Valor: ${priceFormatted}\n`;
+  }
+  if (data.isTest) {
+    message += `\nSistema de notificacoes funcionando corretamente!`;
+  }
+  message += `\n\nEnviado por ImperioApp`;
+  if (data.barbershopAddress) {
+    message += `\n${data.barbershopAddress}`;
+  }
+
+  return message;
+}
+
 /**
  * Fetches notification settings for a barbershop
- * Falls back to default values if the table doesn't exist
  */
 export async function getNotificationSettings(barbershopId: string): Promise<N8nSettings | null> {
   try {
@@ -36,7 +196,6 @@ export async function getNotificationSettings(barbershopId: string): Promise<N8n
       .maybeSingle();
 
     if (error || !data) {
-      // Return default settings if no record found
       return {
         n8n_webhook_url: null,
         send_booking_confirmation: true,
@@ -45,7 +204,7 @@ export async function getNotificationSettings(barbershopId: string): Promise<N8n
     }
 
     return {
-      n8n_webhook_url: null, // Webhook URL is stored as a secret
+      n8n_webhook_url: null,
       send_booking_confirmation: data.enabled ?? true,
       send_booking_reminder: data.send_to_client ?? true,
     };
@@ -67,13 +226,11 @@ export async function sendBookingConfirmationViaWebhook(
   try {
     const settings = await getNotificationSettings(data.barbershopId);
     
-    // Check if confirmations are enabled (but don't require n8n_webhook_url since we use global secret)
     if (settings?.send_booking_confirmation === false) {
       console.log("Email confirmations disabled for this barbershop");
       return false;
     }
 
-    // Prepare template data
     const templateData: TemplateData = {
       clientName: data.clientName,
       clientPhone: data.clientPhone || undefined,
@@ -81,20 +238,32 @@ export async function sendBookingConfirmationViaWebhook(
       serviceName: data.serviceName,
       servicePrice: data.servicePrice,
       professionalName: data.professionalName,
-      bookingDate: data.bookingDate,
-      bookingTime: data.bookingTime,
+      bookingDate: formatDateBR(data.bookingDate),
+      bookingTime: formatTimeBR(data.bookingTime),
       barbershopName: data.barbershopName,
       barbershopLogoUrl: data.barbershopLogoUrl,
       barbershopAddress: data.barbershopAddress,
       notes: data.notes || undefined,
     };
 
-    // Try to get processed template from database
     const emailTemplate = await getProcessedEmailTemplate(
       data.barbershopId,
       "booking_confirmation",
       templateData
     );
+
+    // Generate corporate email HTML if no custom template exists
+    const emailHtml = emailTemplate?.content || generateCorporateEmailHTML({
+      barbershopName: data.barbershopName,
+      barbershopAddress: data.barbershopAddress,
+      barbershopLogoUrl: data.barbershopLogoUrl,
+      title: "Confirmacao de Agendamento",
+      serviceName: data.serviceName,
+      bookingDate: data.bookingDate,
+      bookingTime: data.bookingTime,
+      professionalName: data.professionalName,
+      price: data.servicePrice,
+    });
 
     const payload = {
       type: "booking_confirmation",
@@ -105,19 +274,17 @@ export async function sendBookingConfirmationViaWebhook(
       service_name: data.serviceName,
       service_price: data.servicePrice,
       professional_name: data.professionalName,
-      booking_date: data.bookingDate,
-      booking_time: data.bookingTime,
+      booking_date: formatDateBR(data.bookingDate),
+      booking_time: formatTimeBR(data.bookingTime),
       notes: data.notes || "",
       timestamp: new Date().toISOString(),
-      // Add processed template content if available
-      email_subject: emailTemplate?.subject || `Confirmação de Agendamento - ${data.barbershopName}`,
-      email_html: emailTemplate?.content || null,
-      use_template: !!emailTemplate,
+      email_subject: emailTemplate?.subject || `${data.barbershopName} - Confirmacao de Agendamento`,
+      email_html: emailHtml,
+      use_template: true,
     };
 
     console.log("Sending booking confirmation via edge function to n8n webhook");
     
-    // Use edge function with global secret instead of per-barbershop webhook
     const { data: result, error } = await supabase.functions.invoke("send-email-webhook", {
       body: {
         barbershopId: data.barbershopId,
@@ -148,13 +315,11 @@ export async function sendBookingReminderViaWebhook(
   try {
     const settings = await getNotificationSettings(data.barbershopId);
     
-    // Check if reminders are enabled (but don't require n8n_webhook_url since we use global secret)
     if (settings?.send_booking_reminder === false) {
       console.log("Email reminders disabled for this barbershop");
       return false;
     }
 
-    // Prepare template data
     const templateData: TemplateData = {
       clientName: data.clientName,
       clientPhone: data.clientPhone || undefined,
@@ -162,19 +327,30 @@ export async function sendBookingReminderViaWebhook(
       serviceName: data.serviceName,
       servicePrice: data.servicePrice,
       professionalName: data.professionalName,
-      bookingDate: data.bookingDate,
-      bookingTime: data.bookingTime,
+      bookingDate: formatDateBR(data.bookingDate),
+      bookingTime: formatTimeBR(data.bookingTime),
       barbershopName: data.barbershopName,
       barbershopLogoUrl: data.barbershopLogoUrl,
       notes: data.notes || undefined,
     };
 
-    // Try to get processed template from database
     const emailTemplate = await getProcessedEmailTemplate(
       data.barbershopId,
       "booking_reminder",
       templateData
     );
+
+    const emailHtml = emailTemplate?.content || generateCorporateEmailHTML({
+      barbershopName: data.barbershopName,
+      barbershopAddress: data.barbershopAddress,
+      barbershopLogoUrl: data.barbershopLogoUrl,
+      title: "Lembrete de Agendamento",
+      serviceName: data.serviceName,
+      bookingDate: data.bookingDate,
+      bookingTime: data.bookingTime,
+      professionalName: data.professionalName,
+      price: data.servicePrice,
+    });
 
     const payload = {
       type: "booking_reminder",
@@ -185,19 +361,17 @@ export async function sendBookingReminderViaWebhook(
       service_name: data.serviceName,
       service_price: data.servicePrice,
       professional_name: data.professionalName,
-      booking_date: data.bookingDate,
-      booking_time: data.bookingTime,
+      booking_date: formatDateBR(data.bookingDate),
+      booking_time: formatTimeBR(data.bookingTime),
       notes: data.notes || "",
       timestamp: new Date().toISOString(),
-      // Add processed template content if available
-      email_subject: emailTemplate?.subject || `Lembrete de Agendamento - ${data.barbershopName}`,
-      email_html: emailTemplate?.content || null,
-      use_template: !!emailTemplate,
+      email_subject: emailTemplate?.subject || `${data.barbershopName} - Lembrete de Agendamento`,
+      email_html: emailHtml,
+      use_template: true,
     };
 
     console.log("Sending booking reminder via edge function to n8n webhook");
     
-    // Use edge function with global secret instead of per-barbershop webhook
     const { data: result, error } = await supabase.functions.invoke("send-email-webhook", {
       body: {
         barbershopId: data.barbershopId,
@@ -225,80 +399,36 @@ export async function sendBookingReminderViaWebhook(
 export async function sendTestEmailNotification(barbershopId: string, barbershopName: string): Promise<boolean> {
   try {
     const now = new Date();
-    const bookingDate = new Date(now.getTime() + 24 * 60 * 60 * 1000); // Tomorrow
+    const bookingDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const dateStr = bookingDate.toISOString().split('T')[0];
+
+    const emailHtml = generateCorporateEmailHTML({
+      barbershopName,
+      title: "Notificacao de Teste",
+      serviceName: "Corte de Cabelo",
+      bookingDate: dateStr,
+      bookingTime: "14:00",
+      professionalName: "Barbeiro Teste",
+      price: 45.00,
+      isTest: true,
+    });
 
     const payload = {
       type: "test_email_notification",
-      // Barbershop info
       barbershop_id: barbershopId,
       barbershop_name: barbershopName,
-      // Client info
       client_name: "Cliente Teste",
       client_email: "cliente.teste@exemplo.com",
-      // Professional info
       professional_name: "Barbeiro Teste",
-      professional_email: "barbeiro.teste@exemplo.com",
-      // Booking info
       service_name: "Corte de Cabelo",
       service_price: 45.00,
-      booking_date: bookingDate.toISOString().split('T')[0],
+      booking_date: formatDateBR(dateStr),
       booking_time: "14:00",
-      // Dates
-      registration_date: now.toISOString(),
-      access_date: now.toISOString(),
-      // HTML Template
-      email_template: `
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Confirmação de Agendamento</title>
-</head>
-<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-    <tr>
-      <td style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 30px; text-align: center;">
-        <h1 style="color: #d4af37; margin: 0; font-size: 28px; font-weight: bold;">${barbershopName}</h1>
-        <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 14px;">Sistema de Agendamentos</p>
-      </td>
-    </tr>
-    <tr>
-      <td style="padding: 40px 30px;">
-        <h2 style="color: #1a1a2e; margin: 0 0 20px 0; font-size: 22px;">🧪 Notificação de Teste</h2>
-        <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
-          Esta é uma mensagem de teste do sistema de notificações por e-mail.
-        </p>
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f8f9fa; border-radius: 8px; padding: 20px; margin: 20px 0;">
-          <tr>
-            <td style="padding: 10px;">
-              <p style="margin: 0; color: #333;"><strong>📅 Data:</strong> ${bookingDate.toLocaleDateString('pt-BR')}</p>
-              <p style="margin: 10px 0 0 0; color: #333;"><strong>⏰ Horário:</strong> 14:00</p>
-              <p style="margin: 10px 0 0 0; color: #333;"><strong>✂️ Serviço:</strong> Corte de Cabelo</p>
-              <p style="margin: 10px 0 0 0; color: #333;"><strong>💰 Valor:</strong> R$ 45,00</p>
-              <p style="margin: 10px 0 0 0; color: #333;"><strong>👤 Profissional:</strong> Barbeiro Teste</p>
-            </td>
-          </tr>
-        </table>
-        <p style="color: #28a745; font-size: 14px; text-align: center; margin: 20px 0;">
-          ✅ Sistema de notificações funcionando corretamente!
-        </p>
-      </td>
-    </tr>
-    <tr>
-      <td style="background-color: #1a1a2e; padding: 20px; text-align: center;">
-        <p style="color: #888888; font-size: 12px; margin: 0;">
-          © ${now.getFullYear()} ${barbershopName}. Todos os direitos reservados.
-        </p>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`,
-      notes: "Esta é uma notificação de teste",
+      email_subject: `${barbershopName} - Notificacao de Teste`,
+      email_html: emailHtml,
+      notes: "Esta e uma notificacao de teste",
     };
 
-    // Send to edge function which forwards to n8n webhook using the secret
     const { data, error } = await supabase.functions.invoke("send-email-webhook", {
       body: {
         barbershopId,
@@ -326,9 +456,9 @@ export async function sendTestEmailNotification(barbershopId: string, barbershop
 export async function sendTestWhatsAppNotification(barbershopId: string, barbershopName: string, instanceName?: string): Promise<boolean> {
   try {
     const now = new Date();
-    const bookingDate = new Date(now.getTime() + 24 * 60 * 60 * 1000); // Tomorrow
+    const bookingDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const dateStr = bookingDate.toISOString().split('T')[0];
 
-    // If instanceName not provided, fetch the barbershop slug
     let finalInstanceName = instanceName;
     if (!finalInstanceName) {
       const { data: barbershop } = await supabase
@@ -339,58 +469,27 @@ export async function sendTestWhatsAppNotification(barbershopId: string, barbers
       finalInstanceName = barbershop?.slug || undefined;
     }
 
-    const payload = {
-      type: "test_whatsapp_notification",
-      is_test: true,
-      // Barbershop info
-      barbershop_id: barbershopId,
-      barbershop_name: barbershopName,
-      instance_name: finalInstanceName, // Evolution API instance name
-      // Client info (normalized phone with +55)
-      client_name: "Cliente Teste",
-      client_phone: "+5511999999999",
-      // Professional info
-      professional_name: "Barbeiro Teste",
-      professional_phone: "+5511988888888",
-      // Booking info
-      service_name: "Corte de Cabelo",
-      service_price: 45.00,
-      booking_date: bookingDate.toISOString().split('T')[0],
-      booking_time: "14:00",
-      // Dates
-      registration_date: now.toISOString(),
-      access_date: now.toISOString(),
-      // WhatsApp Message Template
-      message_template: `🧪 *TESTE DE NOTIFICAÇÃO*
+    const message = generateCorporateWhatsAppMessage({
+      title: "Notificacao de Teste",
+      barbershopName,
+      clientName: "Cliente Teste",
+      serviceName: "Corte de Cabelo",
+      bookingDate: dateStr,
+      bookingTime: "14:00",
+      professionalName: "Barbeiro Teste",
+      price: 45.00,
+      isTest: true,
+    });
 
-Olá! Esta é uma mensagem de teste do sistema de notificações da *${barbershopName}*.
-
-📋 *Detalhes do Agendamento (Exemplo):*
-━━━━━━━━━━━━━━━━━━━━━
-📅 *Data:* ${bookingDate.toLocaleDateString('pt-BR')}
-⏰ *Horário:* 14:00
-✂️ *Serviço:* Corte de Cabelo
-💰 *Valor:* R$ 45,00
-👤 *Profissional:* Barbeiro Teste
-━━━━━━━━━━━━━━━━━━━━━
-
-✅ Sistema de notificações funcionando corretamente!
-
-_Esta é uma mensagem automática de teste._`,
-      notes: "Esta é uma notificação de teste",
-      timestamp: now.toISOString(),
-    };
-
-    // Send to edge function which forwards to n8n webhook using the secret
     const { data, error } = await supabase.functions.invoke("send-whatsapp-webhook", {
       body: {
         barbershopId,
         phone: "+5511999999999",
-        message: payload.message_template,
-        instanceName: finalInstanceName, // Include instance name for Evolution API
+        message,
+        instanceName: finalInstanceName,
         clientName: "Cliente Teste",
         serviceName: "Corte de Cabelo",
-        bookingDate: bookingDate.toISOString().split('T')[0],
+        bookingDate: formatDateBR(dateStr),
         bookingTime: "14:00",
         isTest: true,
       },
