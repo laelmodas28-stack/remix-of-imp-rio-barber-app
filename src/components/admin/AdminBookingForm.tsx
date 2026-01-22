@@ -15,6 +15,7 @@ import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Plus, UserPlus, Calendar as CalendarIconLucide } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { sendBookingNotifications } from "@/lib/notifications/bookingNotifications";
 
 interface AdminBookingFormProps {
   barbershopId: string;
@@ -208,8 +209,10 @@ export const AdminBookingForm = ({ barbershopId, onSuccess }: AdminBookingFormPr
     setIsSubmitting(true);
     try {
       const service = services?.find(s => s.id === selectedService);
+      const professional = professionals?.find(p => p.id === selectedProfessional);
+      const client = clients?.find(c => c.client_id === selectedClient);
       
-      const { error } = await supabase.from("bookings").insert({
+      const { data: booking, error } = await supabase.from("bookings").insert({
         client_id: selectedClient,
         service_id: selectedService,
         professional_id: selectedProfessional,
@@ -219,9 +222,30 @@ export const AdminBookingForm = ({ barbershopId, onSuccess }: AdminBookingFormPr
         total_price: service?.price || 0,
         notes: notes,
         status: "confirmed"
-      });
+      }).select("id").single();
 
       if (error) throw error;
+
+      // Trigger notifications
+      try {
+        console.log("[AdminBookingForm] Triggering booking notifications");
+        await sendBookingNotifications({
+          bookingId: booking.id,
+          barbershopId,
+          clientName: client?.profile?.full_name || "Cliente",
+          clientEmail: null,
+          clientPhone: client?.profile?.phone || null,
+          serviceName: service?.name || "Serviço",
+          professionalName: professional?.name || "Profissional",
+          bookingDate: format(selectedDate, "dd/MM/yyyy"),
+          bookingTime: selectedTime,
+          price: service?.price,
+          notificationType: "confirmation",
+        });
+        console.log("[AdminBookingForm] Notifications sent successfully");
+      } catch (notifError) {
+        console.error("[AdminBookingForm] Error sending notifications:", notifError);
+      }
 
       toast.success("Agendamento criado com sucesso!");
       

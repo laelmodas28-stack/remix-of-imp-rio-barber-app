@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
+import { sendBookingNotifications } from "@/lib/notifications/bookingNotifications";
 import { ptBR } from "date-fns/locale";
 import { Loader2, Calendar as CalendarIcon } from "lucide-react";
 
@@ -130,12 +131,13 @@ export function NewAppointmentModal({
 
       const service = services.find((s) => s.id === selectedService);
       const client = clients.find((c) => c.id === selectedClient);
+      const professional = professionals.find((p) => p.id === selectedProfessional);
       
       if (!service || !client) {
         throw new Error("Serviço ou cliente inválido");
       }
 
-      const { error } = await supabase.from("bookings").insert({
+      const { data: booking, error } = await supabase.from("bookings").insert({
         barbershop_id: barbershopId,
         client_id: client.client_id,
         professional_id: selectedProfessional,
@@ -145,9 +147,30 @@ export function NewAppointmentModal({
         total_price: service.price,
         status: "confirmed",
         notes: notes || null,
-      });
+      }).select("id").single();
 
       if (error) throw error;
+
+      // Trigger notifications
+      try {
+        console.log("[NewAppointmentModal] Triggering booking notifications");
+        await sendBookingNotifications({
+          bookingId: booking.id,
+          barbershopId,
+          clientName: client.name,
+          clientEmail: client.email,
+          clientPhone: client.phone,
+          serviceName: service.name,
+          professionalName: professional?.name || "Profissional",
+          bookingDate: format(selectedDate, "dd/MM/yyyy"),
+          bookingTime: selectedTime,
+          price: service.price,
+          notificationType: "confirmation",
+        });
+        console.log("[NewAppointmentModal] Notifications sent successfully");
+      } catch (notifError) {
+        console.error("[NewAppointmentModal] Error sending notifications:", notifError);
+      }
     },
     onSuccess: () => {
       toast.success("Agendamento criado com sucesso!");
