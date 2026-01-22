@@ -194,14 +194,14 @@ const handler = async (req: Request): Promise<Response> => {
               booking_time: booking.booking_time,
               barbershop_name: barbershopName,
               price: booking.price,
-              message: `*🔔 Lembrete de Agendamento*\n\n` +
-                `Olá ${clientData.name}!\n\n` +
-                `Este é um lembrete do seu agendamento:\n\n` +
-                `✂️ Serviço: ${serviceName}\n` +
-                `👨‍💼 Profissional: ${professionalName}\n` +
-                `📅 Data: ${booking.booking_date}\n` +
-                `⏰ Horário: ${booking.booking_time.substring(0, 5)}\n\n` +
-                `Te esperamos! 💈`,
+              message: `*${barbershopName} - Lembrete de Agendamento*\n\n` +
+                `Ola ${clientData.name}\n\n` +
+                `Este e um lembrete do seu agendamento:\n\n` +
+                `Servico: ${serviceName}\n` +
+                `Profissional: ${professionalName}\n` +
+                `Data: ${booking.booking_date}\n` +
+                `Horario: ${booking.booking_time.substring(0, 5)}\n\n` +
+                `Enviado por ImperioApp`,
               timestamp: new Date().toISOString(),
             };
 

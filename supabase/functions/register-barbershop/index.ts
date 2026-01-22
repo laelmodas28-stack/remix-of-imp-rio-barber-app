@@ -272,100 +272,47 @@ serve(async (req) => {
         name: "Confirmação de Agendamento",
         type: "email",
         trigger_event: "booking_confirmation",
-        subject: "✅ Agendamento Confirmado - {{barbearia_nome}}",
+        subject: "{{barbearia_nome}} - Confirmacao de Agendamento",
         content: `<!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
     <tr>
       <td align="center">
-        <!-- Imperio Logo Header -->
-        <table width="600" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
+        <table width="500" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);">
           <tr>
-            <td align="center" style="padding: 20px;">
-              <img src="${imperioLogoUrl}" alt="ImperioApp" style="height: 40px; width: auto;" />
+            <td style="padding: 24px 32px 16px; text-align: center; border-bottom: 1px solid #e5e5e5;">
+              <h1 style="margin: 0; font-size: 18px; font-weight: 600; color: #1a1a2e;">{{barbearia_nome}} - Confirmacao de Agendamento</h1>
             </td>
           </tr>
-        </table>
-        
-        <!-- Main Card -->
-        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #1a1a2e; border-radius: 16px; overflow: hidden;">
-          <!-- Barbershop Logo -->
           <tr>
-            <td align="center" style="padding: 30px 40px 20px;">
-              <img src="{{barbearia_logo_url}}" alt="{{barbearia_nome}}" style="height: 80px; width: 80px; border-radius: 50%; object-fit: cover; border: 3px solid #d4af37;" />
-            </td>
-          </tr>
-          
-          <!-- Title -->
-          <tr>
-            <td align="center" style="padding: 0 40px 10px;">
-              <h1 style="color: #d4af37; margin: 0; font-size: 24px;">✅ Agendamento Confirmado</h1>
-            </td>
-          </tr>
-          
-          <!-- Greeting -->
-          <tr>
-            <td align="center" style="padding: 10px 40px;">
-              <p style="color: #ffffff; font-size: 18px; margin: 0;">Olá, <strong>{{cliente_nome}}</strong>!</p>
-            </td>
-          </tr>
-          
-          <!-- Details Card -->
-          <tr>
-            <td style="padding: 20px 40px 30px;">
-              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #252545; border-radius: 12px; padding: 25px;">
+            <td style="padding: 24px 32px;">
+              <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td style="padding: 10px 20px; border-bottom: 1px solid #3a3a5a;">
-                    <span style="color: #888; font-size: 12px; text-transform: uppercase;">Serviço</span><br/>
-                    <span style="color: #fff; font-size: 16px; font-weight: bold;">{{servico_nome}}</span>
+                  <td style="vertical-align: top; width: 80px; padding-right: 16px;">
+                    <div style="width: 72px; height: 72px; background-color: #1a1a2e; border-radius: 8px; overflow: hidden;">
+                      <img src="{{barbearia_logo_url}}" alt="{{barbearia_nome}}" style="width: 100%; height: 100%; object-fit: contain;" />
+                    </div>
+                    <p style="margin: 8px 0 0; font-size: 11px; color: #666; text-align: center;">{{barbearia_nome}}</p>
                   </td>
-                </tr>
-                <tr>
-                  <td style="padding: 10px 20px; border-bottom: 1px solid #3a3a5a;">
-                    <span style="color: #888; font-size: 12px; text-transform: uppercase;">Profissional</span><br/>
-                    <span style="color: #fff; font-size: 16px;">{{profissional_nome}}</span>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 10px 20px; border-bottom: 1px solid #3a3a5a;">
-                    <span style="color: #888; font-size: 12px; text-transform: uppercase;">Data</span><br/>
-                    <span style="color: #d4af37; font-size: 18px; font-weight: bold;">{{data_agendamento}}</span>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 10px 20px; border-bottom: 1px solid #3a3a5a;">
-                    <span style="color: #888; font-size: 12px; text-transform: uppercase;">Horário</span><br/>
-                    <span style="color: #d4af37; font-size: 18px; font-weight: bold;">{{hora_agendamento}}</span>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 10px 20px;">
-                    <span style="color: #888; font-size: 12px; text-transform: uppercase;">Valor</span><br/>
-                    <span style="color: #4ade80; font-size: 18px; font-weight: bold;">R$ {{servico_preco}}</span>
+                  <td style="vertical-align: top;">
+                    <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Servico:</strong> {{servico_nome}}</p>
+                    <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Data:</strong> {{data_agendamento}} {{hora_agendamento}}</p>
+                    <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Profissional:</strong> {{profissional_nome}}</p>
+                    <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Valor:</strong> R$ {{servico_preco}}</p>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
-          
-          <!-- Address -->
           <tr>
-            <td align="center" style="padding: 0 40px 30px;">
-              <p style="color: #888; font-size: 14px; margin: 0;">📍 {{barbearia_endereco}}</p>
-            </td>
-          </tr>
-        </table>
-        
-        <!-- Footer -->
-        <table width="600" cellpadding="0" cellspacing="0" style="margin-top: 20px;">
-          <tr>
-            <td align="center" style="padding: 20px;">
-              <p style="color: #888; font-size: 12px; margin: 0;">Enviado por <strong>ImperioApp</strong></p>
+            <td style="padding: 16px 32px 24px; text-align: center; border-top: 1px solid #e5e5e5;">
+              <p style="margin: 0 0 4px; font-size: 12px; color: #888;">Enviado por ImperioApp</p>
+              <p style="margin: 0; font-size: 11px; color: #aaa;">{{barbearia_endereco}}</p>
             </td>
           </tr>
         </table>
@@ -381,95 +328,46 @@ serve(async (req) => {
         name: "Lembrete de Agendamento",
         type: "email",
         trigger_event: "booking_reminder",
-        subject: "⏰ Lembrete: Seu horário é amanhã! - {{barbearia_nome}}",
+        subject: "{{barbearia_nome}} - Lembrete de Agendamento",
         content: `<!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
     <tr>
       <td align="center">
-        <!-- Imperio Logo Header -->
-        <table width="600" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
+        <table width="500" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);">
           <tr>
-            <td align="center" style="padding: 20px;">
-              <img src="${imperioLogoUrl}" alt="ImperioApp" style="height: 40px; width: auto;" />
+            <td style="padding: 24px 32px 16px; text-align: center; border-bottom: 1px solid #e5e5e5;">
+              <h1 style="margin: 0; font-size: 18px; font-weight: 600; color: #1a1a2e;">{{barbearia_nome}} - Lembrete de Agendamento</h1>
             </td>
           </tr>
-        </table>
-        
-        <!-- Main Card -->
-        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #1a1a2e; border-radius: 16px; overflow: hidden;">
-          <!-- Barbershop Logo -->
           <tr>
-            <td align="center" style="padding: 30px 40px 20px;">
-              <img src="{{barbearia_logo_url}}" alt="{{barbearia_nome}}" style="height: 80px; width: 80px; border-radius: 50%; object-fit: cover; border: 3px solid #d4af37;" />
-            </td>
-          </tr>
-          
-          <!-- Title -->
-          <tr>
-            <td align="center" style="padding: 0 40px 10px;">
-              <h1 style="color: #f59e0b; margin: 0; font-size: 24px;">⏰ Lembrete de Agendamento</h1>
-            </td>
-          </tr>
-          
-          <!-- Greeting -->
-          <tr>
-            <td align="center" style="padding: 10px 40px;">
-              <p style="color: #ffffff; font-size: 18px; margin: 0;">Olá, <strong>{{cliente_nome}}</strong>!</p>
-              <p style="color: #ccc; font-size: 14px; margin: 10px 0 0;">Não esqueça do seu horário amanhã!</p>
-            </td>
-          </tr>
-          
-          <!-- Details Card -->
-          <tr>
-            <td style="padding: 20px 40px 30px;">
-              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #252545; border-radius: 12px; padding: 25px;">
+            <td style="padding: 24px 32px;">
+              <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td style="padding: 10px 20px; border-bottom: 1px solid #3a3a5a;">
-                    <span style="color: #888; font-size: 12px; text-transform: uppercase;">Serviço</span><br/>
-                    <span style="color: #fff; font-size: 16px; font-weight: bold;">{{servico_nome}}</span>
+                  <td style="vertical-align: top; width: 80px; padding-right: 16px;">
+                    <div style="width: 72px; height: 72px; background-color: #1a1a2e; border-radius: 8px; overflow: hidden;">
+                      <img src="{{barbearia_logo_url}}" alt="{{barbearia_nome}}" style="width: 100%; height: 100%; object-fit: contain;" />
+                    </div>
+                    <p style="margin: 8px 0 0; font-size: 11px; color: #666; text-align: center;">{{barbearia_nome}}</p>
                   </td>
-                </tr>
-                <tr>
-                  <td style="padding: 10px 20px; border-bottom: 1px solid #3a3a5a;">
-                    <span style="color: #888; font-size: 12px; text-transform: uppercase;">Profissional</span><br/>
-                    <span style="color: #fff; font-size: 16px;">{{profissional_nome}}</span>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 10px 20px; border-bottom: 1px solid #3a3a5a;">
-                    <span style="color: #888; font-size: 12px; text-transform: uppercase;">Data</span><br/>
-                    <span style="color: #f59e0b; font-size: 18px; font-weight: bold;">{{data_agendamento}}</span>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 10px 20px;">
-                    <span style="color: #888; font-size: 12px; text-transform: uppercase;">Horário</span><br/>
-                    <span style="color: #f59e0b; font-size: 18px; font-weight: bold;">{{hora_agendamento}}</span>
+                  <td style="vertical-align: top;">
+                    <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Servico:</strong> {{servico_nome}}</p>
+                    <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Data:</strong> {{data_agendamento}} {{hora_agendamento}}</p>
+                    <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Profissional:</strong> {{profissional_nome}}</p>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
-          
-          <!-- Address -->
           <tr>
-            <td align="center" style="padding: 0 40px 30px;">
-              <p style="color: #888; font-size: 14px; margin: 0;">📍 {{barbearia_endereco}}</p>
-            </td>
-          </tr>
-        </table>
-        
-        <!-- Footer -->
-        <table width="600" cellpadding="0" cellspacing="0" style="margin-top: 20px;">
-          <tr>
-            <td align="center" style="padding: 20px;">
-              <p style="color: #888; font-size: 12px; margin: 0;">Enviado por <strong>ImperioApp</strong></p>
+            <td style="padding: 16px 32px 24px; text-align: center; border-top: 1px solid #e5e5e5;">
+              <p style="margin: 0 0 4px; font-size: 12px; color: #888;">Enviado por ImperioApp</p>
+              <p style="margin: 0; font-size: 11px; color: #aaa;">{{barbearia_endereco}}</p>
             </td>
           </tr>
         </table>
@@ -485,83 +383,36 @@ serve(async (req) => {
         name: "Agendamento Cancelado",
         type: "email",
         trigger_event: "booking_cancelled",
-        subject: "❌ Agendamento Cancelado - {{barbearia_nome}}",
+        subject: "{{barbearia_nome}} - Agendamento Cancelado",
         content: `<!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
     <tr>
       <td align="center">
-        <!-- Imperio Logo Header -->
-        <table width="600" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
+        <table width="500" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);">
           <tr>
-            <td align="center" style="padding: 20px;">
-              <img src="${imperioLogoUrl}" alt="ImperioApp" style="height: 40px; width: auto;" />
+            <td style="padding: 24px 32px 16px; text-align: center; border-bottom: 1px solid #e5e5e5;">
+              <h1 style="margin: 0; font-size: 18px; font-weight: 600; color: #1a1a2e;">{{barbearia_nome}} - Agendamento Cancelado</h1>
             </td>
           </tr>
-        </table>
-        
-        <!-- Main Card -->
-        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #1a1a2e; border-radius: 16px; overflow: hidden;">
-          <!-- Barbershop Logo -->
           <tr>
-            <td align="center" style="padding: 30px 40px 20px;">
-              <img src="{{barbearia_logo_url}}" alt="{{barbearia_nome}}" style="height: 80px; width: 80px; border-radius: 50%; object-fit: cover; border: 3px solid #ef4444;" />
+            <td style="padding: 24px 32px;">
+              <p style="margin: 0 0 16px; font-size: 14px; color: #333;">Ola, <strong>{{cliente_nome}}</strong></p>
+              <p style="margin: 0 0 16px; font-size: 14px; color: #666;">Seu agendamento foi cancelado:</p>
+              <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Servico:</strong> {{servico_nome}}</p>
+              <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Data:</strong> {{data_agendamento}} {{hora_agendamento}}</p>
+              <p style="margin: 16px 0 0; font-size: 14px; color: #666;">Para reagendar, entre em contato: {{barbearia_telefone}}</p>
             </td>
           </tr>
-          
-          <!-- Title -->
           <tr>
-            <td align="center" style="padding: 0 40px 10px;">
-              <h1 style="color: #ef4444; margin: 0; font-size: 24px;">❌ Agendamento Cancelado</h1>
-            </td>
-          </tr>
-          
-          <!-- Greeting -->
-          <tr>
-            <td align="center" style="padding: 10px 40px;">
-              <p style="color: #ffffff; font-size: 18px; margin: 0;">Olá, <strong>{{cliente_nome}}</strong></p>
-              <p style="color: #ccc; font-size: 14px; margin: 10px 0 0;">Seu agendamento foi cancelado.</p>
-            </td>
-          </tr>
-          
-          <!-- Details Card -->
-          <tr>
-            <td style="padding: 20px 40px 30px;">
-              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #252545; border-radius: 12px; padding: 25px; opacity: 0.7;">
-                <tr>
-                  <td style="padding: 10px 20px; border-bottom: 1px solid #3a3a5a;">
-                    <span style="color: #888; font-size: 12px; text-transform: uppercase;">Serviço</span><br/>
-                    <span style="color: #999; font-size: 16px; text-decoration: line-through;">{{servico_nome}}</span>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 10px 20px; border-bottom: 1px solid #3a3a5a;">
-                    <span style="color: #888; font-size: 12px; text-transform: uppercase;">Data</span><br/>
-                    <span style="color: #999; font-size: 16px; text-decoration: line-through;">{{data_agendamento}} às {{hora_agendamento}}</span>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          
-          <!-- CTA -->
-          <tr>
-            <td align="center" style="padding: 0 40px 30px;">
-              <p style="color: #888; font-size: 14px; margin: 0;">Entre em contato para reagendar: {{barbearia_telefone}}</p>
-            </td>
-          </tr>
-        </table>
-        
-        <!-- Footer -->
-        <table width="600" cellpadding="0" cellspacing="0" style="margin-top: 20px;">
-          <tr>
-            <td align="center" style="padding: 20px;">
-              <p style="color: #888; font-size: 12px; margin: 0;">Enviado por <strong>ImperioApp</strong></p>
+            <td style="padding: 16px 32px 24px; text-align: center; border-top: 1px solid #e5e5e5;">
+              <p style="margin: 0 0 4px; font-size: 12px; color: #888;">Enviado por ImperioApp</p>
+              <p style="margin: 0; font-size: 11px; color: #aaa;">{{barbearia_endereco}}</p>
             </td>
           </tr>
         </table>
@@ -572,27 +423,27 @@ serve(async (req) => {
 </html>`,
         is_active: true,
       },
-      // WhatsApp templates
+      // WhatsApp templates - Professional, no emojis
       {
         barbershop_id: barbershopId,
         name: "Confirmação de Agendamento",
         type: "whatsapp",
         trigger_event: "booking_confirmation",
-        content: `✅ *Agendamento Confirmado!*
+        content: `*{{barbearia_nome}} - Confirmacao de Agendamento*
 
-Olá, *{{cliente_nome}}*! 👋
+Ola, *{{cliente_nome}}*
 
-Seu horário foi confirmado na *{{barbearia_nome}}*:
+Seu horario foi confirmado.
 
-📅 *Data:* {{data_agendamento}}
-⏰ *Horário:* {{hora_agendamento}}
-✂️ *Serviço:* {{servico_nome}}
-👤 *Profissional:* {{profissional_nome}}
-💰 *Valor:* R$ {{servico_preco}}
+Servico: {{servico_nome}}
+Data: {{data_agendamento}}
+Horario: {{hora_agendamento}}
+Profissional: {{profissional_nome}}
+Valor: R$ {{servico_preco}}
 
-📍 {{barbearia_endereco}}
+{{barbearia_endereco}}
 
-Aguardamos você! 🙌`,
+Enviado por ImperioApp`,
         is_active: true,
       },
       {
@@ -600,20 +451,20 @@ Aguardamos você! 🙌`,
         name: "Lembrete de Agendamento",
         type: "whatsapp",
         trigger_event: "booking_reminder",
-        content: `⏰ *Lembrete de Agendamento*
+        content: `*{{barbearia_nome}} - Lembrete de Agendamento*
 
-Olá, *{{cliente_nome}}*! 👋
+Ola, *{{cliente_nome}}*
 
-Não esqueça do seu horário amanhã na *{{barbearia_nome}}*:
+Nao esqueca do seu horario amanha.
 
-📅 *Data:* {{data_agendamento}}
-⏰ *Horário:* {{hora_agendamento}}
-✂️ *Serviço:* {{servico_nome}}
-👤 *Profissional:* {{profissional_nome}}
+Servico: {{servico_nome}}
+Data: {{data_agendamento}}
+Horario: {{hora_agendamento}}
+Profissional: {{profissional_nome}}
 
-📍 {{barbearia_endereco}}
+{{barbearia_endereco}}
 
-Até lá! 👊`,
+Enviado por ImperioApp`,
         is_active: true,
       },
       {
@@ -621,19 +472,18 @@ Até lá! 👊`,
         name: "Agendamento Cancelado",
         type: "whatsapp",
         trigger_event: "booking_cancelled",
-        content: `❌ *Agendamento Cancelado*
+        content: `*{{barbearia_nome}} - Agendamento Cancelado*
 
-Olá, *{{cliente_nome}}*
+Ola, *{{cliente_nome}}*
 
 Seu agendamento foi cancelado:
 
-📅 {{data_agendamento}} às {{hora_agendamento}}
-✂️ {{servico_nome}}
+Servico: {{servico_nome}}
+Data: {{data_agendamento}} {{hora_agendamento}}
 
-Para reagendar, entre em contato:
-📞 {{barbearia_telefone}}
+Para reagendar, entre em contato: {{barbearia_telefone}}
 
-*{{barbearia_nome}}*`,
+Enviado por ImperioApp`,
         is_active: true,
       },
     ];
