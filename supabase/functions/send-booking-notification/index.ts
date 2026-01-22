@@ -10,86 +10,95 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Função para enviar SMS usando Vonage
-// async function sendVonageSMS(apiKey: string, from: string, to: string, message: string): Promise<void> {
-//   const response = await fetch('https://rest.nexmo.com/sms/json', {
-//     method: 'POST',
-//     headers: { 'Content-Type': 'application/json' },
-//     body: JSON.stringify({
-//       api_key: apiKey.split(':')[0],
-//       api_secret: apiKey.split(':')[1],
-//       from,
-//       to: to.replace(/\D/g, ''),
-//       text: message,
-//     }),
-//   });
-//   const data = await response.json();
-//   if (data.messages[0].status !== '0') {
-//     throw new Error(`Vonage SMS failed: ${data.messages[0]['error-text']}`);
-//   }
-// }
+// Evolution API configuration
+const EVOLUTION_API_URL = Deno.env.get("EVOLUTION_API_URL") || "";
+const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY") || "";
 
-// Função para enviar SMS usando MessageBird
-// async function sendMessageBirdSMS(apiKey: string, from: string, to: string, message: string): Promise<void> {
-//   const response = await fetch('https://rest.messagebird.com/messages', {
-//     method: 'POST',
-//     headers: {
-//       'Authorization': `AccessKey ${apiKey}`,
-//       'Content-Type': 'application/json',
-//     },
-//     body: JSON.stringify({
-//       originator: from,
-//       recipients: [to.replace(/\D/g, '')],
-//       body: message,
-//     }),
-//   });
-//   if (!response.ok) {
-//     throw new Error(`MessageBird SMS failed: ${response.statusText}`);
-//   }
-// }
+// Helper function to format phone number for WhatsApp
+function formatPhoneNumber(phone: string): string {
+  const cleaned = phone.replace(/\D/g, "");
+  if (cleaned.length === 10 || cleaned.length === 11) {
+    return `55${cleaned}`;
+  }
+  return cleaned;
+}
 
-// Função para enviar SMS usando diferentes provedores
+// Send WhatsApp message via Evolution API
+async function sendWhatsAppMessage(
+  instanceName: string,
+  phone: string,
+  message: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) {
+    return { success: false, error: "Evolution API not configured" };
+  }
+
+  const cleanUrl = EVOLUTION_API_URL.replace(/\/$/, "");
+  const formattedPhone = formatPhoneNumber(phone);
+
+  try {
+    // Check instance connection status
+    const statusRes = await fetch(`${cleanUrl}/instance/connectionState/${instanceName}`, {
+      method: "GET",
+      headers: { "apikey": EVOLUTION_API_KEY },
+    });
+
+    if (!statusRes.ok) {
+      return { success: false, error: "WhatsApp instance not found" };
+    }
+
+    const statusData = await statusRes.json();
+    if (statusData.state !== "open" && statusData.state !== "connected") {
+      return { success: false, error: `WhatsApp not connected: ${statusData.state}` };
+    }
+
+    // Send message
+    const sendRes = await fetch(`${cleanUrl}/message/sendText/${instanceName}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": EVOLUTION_API_KEY,
+      },
+      body: JSON.stringify({
+        number: formattedPhone,
+        text: message,
+      }),
+    });
+
+    if (!sendRes.ok) {
+      const errorText = await sendRes.text();
+      return { success: false, error: `Failed to send: ${errorText}` };
+    }
+
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
+  }
+}
+
+// Send SMS using MessageBird
 async function sendSMS(
-  provider: string,
   apiKey: string,
   from: string,
   to: string,
   message: string
 ): Promise<void> {
-  console.log(`Sending SMS via ${provider} to ${to}`);
+  console.log(`Sending SMS via MessageBird to ${to}`);
   
-  if (provider === 'vonage') {
-    const response = await fetch('https://rest.nexmo.com/sms/json', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        api_key: apiKey.split(':')[0],
-        api_secret: apiKey.split(':')[1],
-        from,
-        to: to.replace(/\D/g, ''),
-        text: message,
-      }),
-    });
-    const data = await response.json();
-    if (data.messages[0].status !== '0') {
-      throw new Error(`Vonage SMS failed: ${data.messages[0]['error-text']}`);
-    }
-  } else if (provider === 'messagebird') {
-    const response = await fetch('https://rest.messagebird.com/messages', {
-      method: 'POST',
-      headers: {
-        'Authorization': `AccessKey ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        originator: from,
-        recipients: [to.replace(/\D/g, '')],
-        body: message,
-      }),
-    });
-    if (!response.ok) {
-      throw new Error(`MessageBird SMS failed: ${response.statusText}`);
-    }
+  const response = await fetch('https://rest.messagebird.com/messages', {
+    method: 'POST',
+    headers: {
+      'Authorization': `AccessKey ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      originator: from,
+      recipients: [to.replace(/\D/g, '')],
+      body: message,
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(`MessageBird SMS failed: ${response.statusText}`);
   }
 }
 
@@ -99,7 +108,6 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    // Schema validation
     const notificationSchema = z.object({
       bookingId: z.string().uuid()
     });
@@ -118,8 +126,8 @@ const handler = async (req: Request): Promise<Response> => {
         *,
         services (name, price),
         professionals (name),
-        profiles (full_name, phone),
-        barbershops (id, name, address, whatsapp, mensagem_personalizada)
+        profiles (full_name, phone, email),
+        barbershops (id, name, address, whatsapp, mensagem_personalizada, slug)
       `)
       .eq("id", bookingId)
       .single();
@@ -132,17 +140,16 @@ const handler = async (req: Request): Promise<Response> => {
     const barbershopId = booking.barbershop_id;
     const clientName = booking.profiles?.full_name || "Cliente";
     const clientPhone = booking.profiles?.phone;
+    const clientEmail = booking.profiles?.email;
+    const barbershopSlug = booking.barbershops?.slug;
     
-    // Get client email from auth.users
-    const { data: userData } = await supabase.auth.admin.getUserById(booking.client_id);
-    const clientEmail = userData?.user?.email;
     const date = booking.booking_date;
     const time = booking.booking_time;
     const service = booking.services.name;
     const professional = booking.professionals.name;
     const price = booking.services.price;
 
-    console.log("Processing notification for:", clientEmail, "Barbershop:", barbershopId);
+    console.log("Processing notification for:", clientEmail || clientPhone, "Barbershop:", barbershopId);
     
     // Helper function to save notification to database
     const saveNotification = async (userId: string, type: string, title: string, message: string) => {
@@ -158,23 +165,43 @@ const handler = async (req: Request): Promise<Response> => {
         });
       
       if (error) {
-        console.error(`❌ Erro ao salvar notificação ${type}:`, error);
+        console.error(`❌ Error saving ${type} notification:`, error);
       } else {
-        console.log(`✅ Notificação ${type} salva no banco`);
+        console.log(`✅ ${type} notification saved`);
       }
     };
 
-    // Buscar dados da barbearia
+    // Log notification to notification_logs
+    const logNotification = async (channel: string, recipient: string, status: string, content: string, errorMessage?: string) => {
+      await supabase.from("notification_logs").insert({
+        barbershop_id: barbershopId,
+        channel,
+        recipient_contact: recipient,
+        status,
+        content,
+        error_message: errorMessage,
+        sent_at: new Date().toISOString(),
+      });
+    };
+
+    // Fetch barbershop data
     const { data: barbershop } = await supabase
       .from("barbershops")
       .select("*")
       .eq("id", barbershopId)
       .single();
 
-    // Buscar configurações de notificação da barbearia específica
+    // Fetch notification settings
     const { data: notificationSettings } = await supabase
       .from("notification_settings")
       .select("*")
+      .eq("barbershop_id", barbershopId)
+      .maybeSingle();
+
+    // Fetch barbershop settings for WhatsApp config
+    const { data: barbershopSettings } = await supabase
+      .from("barbershop_settings")
+      .select("whatsapp_enabled, whatsapp_send_booking_confirmation")
       .eq("barbershop_id", barbershopId)
       .maybeSingle();
 
@@ -186,20 +213,26 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Formatar data
+    // Format date
     const formattedDate = new Date(date).toLocaleDateString("pt-BR", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
     });
 
-    // Tentar gerar mensagens com IA se habilitado
+    const formattedDateLong = new Date(date).toLocaleDateString("pt-BR", {
+      weekday: "long",
+      day: "2-digit",
+      month: "long",
+    });
+
+    // Generate messages with AI if enabled
     let customMessage = "";
     let barberMessage = "";
     
     if (notificationSettings.ai_enabled && barbershop?.mensagem_personalizada) {
       try {
-        console.log("Gerando mensagens com IA...");
+        console.log("Generating messages with AI...");
         const { data: aiMessages, error: aiError } = await supabase.functions.invoke(
           "generate-notification-messages",
           {
@@ -217,18 +250,18 @@ const handler = async (req: Request): Promise<Response> => {
         );
 
         if (aiError) {
-          console.error("Erro ao gerar mensagens com IA:", aiError);
+          console.error("AI message generation error:", aiError);
         } else if (aiMessages?.messages) {
           customMessage = aiMessages.messages.clientConfirmation;
           barberMessage = aiMessages.messages.barberNotification;
-          console.log("Mensagens geradas com IA com sucesso");
+          console.log("AI messages generated successfully");
         }
       } catch (aiError) {
-        console.error("Erro ao chamar função de IA:", aiError);
+        console.error("AI function call error:", aiError);
       }
     }
     
-    // Fallback para template estático se IA falhou ou não está habilitada
+    // Fallback to static template
     if (!customMessage) {
       customMessage = notificationSettings.custom_message || "";
       customMessage = customMessage
@@ -245,7 +278,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const clientUserId = booking.client_id;
     
-    // Salvar notificação de confirmação no banco (sempre funciona)
+    // Save confirmation notification to database
     if (clientUserId && notificationSettings.send_to_client) {
       await saveNotification(
         clientUserId,
@@ -255,7 +288,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
     
-    // Enviar email para o cliente
+    // Send email to client
     if (notificationSettings.send_to_client && clientEmail) {
       try {
         const emailHtml = `
@@ -330,7 +363,6 @@ const handler = async (req: Request): Promise<Response> => {
             </div>
             <div class="footer">
               <p>Este é um email automático. Caso precise de ajuda, entre em contato conosco.</p>
-              <p>Suporte: Imperiobarber92@gmail.com | (11) 96933-2465</p>
               <p>${barbershop?.name || 'Barbearia'}</p>
             </div>
           </div>
@@ -345,13 +377,49 @@ const handler = async (req: Request): Promise<Response> => {
           html: emailHtml,
         });
 
-        console.log("✅ Email enviado para cliente:", clientEmail, "Response:", JSON.stringify(emailResponse));
+        console.log("✅ Email sent to client:", clientEmail);
+        await logNotification("email", clientEmail, "sent", JSON.stringify({ subject: "Agendamento Confirmado", service, date: formattedDate }));
       } catch (emailError: any) {
-        console.error("❌ ERRO ao enviar email para cliente:", clientEmail, "Error:", emailError.message);
+        console.error("❌ Email error:", emailError.message);
+        await logNotification("email", clientEmail, "failed", JSON.stringify({ service, date: formattedDate }), emailError.message);
       }
     }
 
-    // Salvar e enviar notificação para o admin/barbeiro
+    // Send WhatsApp to client via Evolution API
+    const whatsappEnabled = barbershopSettings?.whatsapp_enabled || notificationSettings.send_whatsapp;
+    const whatsappConfirmationEnabled = barbershopSettings?.whatsapp_send_booking_confirmation !== false;
+    
+    if (whatsappEnabled && whatsappConfirmationEnabled && clientPhone && barbershopSlug) {
+      console.log("Sending WhatsApp via Evolution API...");
+      
+      const whatsappMessage = `✅ *Agendamento Confirmado!*
+
+Olá ${clientName}! 👋
+
+Seu agendamento na *${barbershop?.name || 'Barbearia'}* foi confirmado:
+
+📋 *Serviço:* ${service}
+💇 *Profissional:* ${professional}
+📅 *Data:* ${formattedDateLong}
+⏰ *Horário:* ${time}
+💰 *Valor:* R$ ${price.toFixed(2)}
+
+${barbershop?.address ? `📍 *Endereço:* ${barbershop.address}` : ''}
+
+Esperamos você! 😊`;
+
+      const whatsappResult = await sendWhatsAppMessage(barbershopSlug, clientPhone, whatsappMessage);
+      
+      if (whatsappResult.success) {
+        console.log("✅ WhatsApp sent via Evolution API");
+        await logNotification("whatsapp", clientPhone, "sent", JSON.stringify({ service, date: formattedDate, instance: barbershopSlug }));
+      } else {
+        console.error("❌ WhatsApp error:", whatsappResult.error);
+        await logNotification("whatsapp", clientPhone, "failed", JSON.stringify({ service, date: formattedDate }), whatsappResult.error);
+      }
+    }
+
+    // Save and send notification to admin/barber
     if (notificationSettings.admin_email) {
       const { data: barbershopData } = await supabase
         .from('barbershops')
@@ -396,7 +464,7 @@ const handler = async (req: Request): Promise<Response> => {
               ` : ''}
               <div class="details">
                 <p><strong>Cliente:</strong> ${clientName}</p>
-                <p><strong>Email:</strong> ${clientEmail}</p>
+                <p><strong>Email:</strong> ${clientEmail || 'Não informado'}</p>
                 ${clientPhone ? `<p><strong>Telefone:</strong> ${clientPhone}</p>` : ''}
                 <p><strong>Data:</strong> ${formattedDate}</p>
                 <p><strong>Horário:</strong> ${time}</p>
@@ -417,32 +485,49 @@ const handler = async (req: Request): Promise<Response> => {
           html: adminEmailHtml,
         });
 
-        console.log("✅ Email enviado para admin:", notificationSettings.admin_email);
+        console.log("✅ Email sent to admin:", notificationSettings.admin_email);
       } catch (adminEmailError: any) {
-        console.error("❌ ERRO ao enviar email para admin:", adminEmailError.message);
+        console.error("❌ Admin email error:", adminEmailError.message);
       }
     }
 
-    // Enviar SMS para o cliente (usando secrets centralizados da plataforma)
+    // Send WhatsApp to admin
+    if (notificationSettings.admin_whatsapp && barbershopSlug) {
+      const adminWhatsAppMessage = `🔔 *Novo Agendamento*
+
+👤 *Cliente:* ${clientName}
+📱 *Telefone:* ${clientPhone || 'Não informado'}
+📋 *Serviço:* ${service}
+💇 *Profissional:* ${professional}
+📅 *Data:* ${formattedDate}
+⏰ *Horário:* ${time}
+💰 *Valor:* R$ ${price.toFixed(2)}`;
+
+      const adminWhatsAppResult = await sendWhatsAppMessage(barbershopSlug, notificationSettings.admin_whatsapp, adminWhatsAppMessage);
+      
+      if (adminWhatsAppResult.success) {
+        console.log("✅ WhatsApp sent to admin");
+      } else {
+        console.error("❌ Admin WhatsApp error:", adminWhatsAppResult.error);
+      }
+    }
+
+    // Send SMS to client
     if (notificationSettings.send_sms && clientPhone) {
       const messagebirdApiKey = Deno.env.get("MESSAGEBIRD_API_KEY");
       const messagebirdOriginator = Deno.env.get("MESSAGEBIRD_ORIGINATOR");
       
       if (!messagebirdApiKey || !messagebirdOriginator) {
-        console.warn("⚠️ SMS está habilitado mas as credenciais do MessageBird não estão configuradas");
+        console.warn("⚠️ SMS enabled but MessageBird credentials not configured");
       } else {
         try {
           const smsMessage = customMessage.substring(0, 160);
-          await sendSMS(
-            "messagebird",
-            messagebirdApiKey,
-            messagebirdOriginator,
-            clientPhone,
-            smsMessage
-          );
-          console.log("✅ SMS enviado para cliente:", clientPhone);
+          await sendSMS(messagebirdApiKey, messagebirdOriginator, clientPhone, smsMessage);
+          console.log("✅ SMS sent to client:", clientPhone);
+          await logNotification("sms", clientPhone, "sent", JSON.stringify({ message: smsMessage }));
         } catch (smsError: any) {
-          console.error("❌ ERRO ao enviar SMS:", smsError.message);
+          console.error("❌ SMS error:", smsError.message);
+          await logNotification("sms", clientPhone, "failed", JSON.stringify({ message: customMessage.substring(0, 50) }), smsError.message);
         }
       }
     }
@@ -457,10 +542,9 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error: any) {
     console.error("Error sending notification:", error);
     
-    // Handle zod validation errors
     if (error.name === 'ZodError') {
       return new Response(
-        JSON.stringify({ error: 'Dados inválidos: ' + error.errors[0].message }),
+        JSON.stringify({ error: 'Invalid data: ' + error.errors[0].message }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
