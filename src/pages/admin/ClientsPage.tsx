@@ -47,12 +47,26 @@ export function ClientsPage() {
       if (!barbershop?.id) throw new Error("Barbearia não encontrada");
       if (!formData.name.trim()) throw new Error("Nome é obrigatório");
       
-      // Create client directly in barbershop_clients with info stored there
+      // First, create a profile entry for the manual client
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .insert({
+          full_name: formData.name.trim(),
+          email: formData.email.trim() || null,
+          phone: formData.phone.trim() || null,
+          role: "client" as const,
+        })
+        .select("id")
+        .single();
+      
+      if (profileError) throw profileError;
+      
+      // Now create the barbershop_clients entry with the valid profile ID
       const { error: clientError } = await supabase
         .from("barbershop_clients")
         .insert({
           barbershop_id: barbershop.id,
-          client_id: crypto.randomUUID(), // Generate a placeholder ID
+          client_id: profileData.id,
           email: formData.email.trim() || null,
           phone: formData.phone.trim() || null,
           notes: `Cliente cadastrado manualmente: ${formData.name.trim()}`,
