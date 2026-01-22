@@ -212,6 +212,7 @@ serve(async (req) => {
       .insert({
         name: barbershop.name,
         slug: slug,
+        owner_id: userId,
         address: barbershop.address,
         description: barbershop.description,
         phone: owner.phone,
