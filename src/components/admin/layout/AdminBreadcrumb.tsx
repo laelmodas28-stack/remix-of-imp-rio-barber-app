@@ -19,45 +19,14 @@ export function AdminBreadcrumb() {
   const currentPath = location.pathname.replace(`${adminBaseUrl}/`, "").replace(adminBaseUrl, "");
   
   const crumbs = getBreadcrumbs(currentPath);
-
-  if (crumbs.length <= 1) {
-    return (
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbPage className="font-medium">Dashboard</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-    );
-  }
+  const currentPage = crumbs.length > 0 ? crumbs[crumbs.length - 1].label : "Dashboard";
 
   return (
     <Breadcrumb>
       <BreadcrumbList>
-        {crumbs.map((crumb, index) => {
-          const isLast = index === crumbs.length - 1;
-          const fullPath = crumb.path ? `${adminBaseUrl}/${crumb.path}` : adminBaseUrl;
-
-          return (
-            <Fragment key={index}>
-              {index > 0 && <BreadcrumbSeparator />}
-              <BreadcrumbItem>
-                {isLast ? (
-                  <BreadcrumbPage className="font-medium">{crumb.label}</BreadcrumbPage>
-                ) : crumb.path !== "" ? (
-                  <BreadcrumbLink asChild>
-                    <Link to={fullPath} className="text-muted-foreground hover:text-foreground">
-                      {crumb.label}
-                    </Link>
-                  </BreadcrumbLink>
-                ) : (
-                  <span className="text-muted-foreground">{crumb.label}</span>
-                )}
-              </BreadcrumbItem>
-            </Fragment>
-          );
-        })}
+        <BreadcrumbItem>
+          <BreadcrumbPage className="font-medium">{currentPage}</BreadcrumbPage>
+        </BreadcrumbItem>
       </BreadcrumbList>
     </Breadcrumb>
   );
