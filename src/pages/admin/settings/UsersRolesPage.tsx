@@ -13,9 +13,15 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Shield, Search, UserCog, User, UserPlus, Loader2, Trash2, Eye, EyeOff } from "lucide-react";
+import { Shield, Search, UserCog, User, UserPlus, Loader2, Trash2, Eye, EyeOff, Link } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+interface Professional {
+  id: string;
+  name: string;
+  user_id: string | null;
+}
 
 type AppRole = "admin" | "barber" | "client";
 type UserStatus = "active" | "inactive";
@@ -48,10 +54,28 @@ export function UsersRolesPage() {
   const [newBarberEmail, setNewBarberEmail] = useState("");
   const [newBarberPassword, setNewBarberPassword] = useState("");
   const [newBarberPhone, setNewBarberPhone] = useState("");
+  const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>("");
   const [showPassword, setShowPassword] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
+
+  // Fetch professionals without user_id (unlinked)
+  const { data: unlinkedProfessionals } = useQuery({
+    queryKey: ["unlinked-professionals", barbershop?.id],
+    queryFn: async () => {
+      if (!barbershop?.id) return [];
+      const { data, error } = await supabase
+        .from("professionals")
+        .select("id, name, user_id")
+        .eq("barbershop_id", barbershop.id)
+        .is("user_id", null)
+        .order("name");
+      if (error) throw error;
+      return data as Professional[];
+    },
+    enabled: !!barbershop?.id,
+  });
 
   const { data: users, isLoading } = useQuery({
     queryKey: ["admin-users-roles", barbershop?.id],
@@ -215,6 +239,7 @@ export function UsersRolesPage() {
           email: newBarberEmail.toLowerCase().trim(),
           password: newBarberPassword,
           phone: newBarberPhone.replace(/\D/g, "") || "",
+          professional_id: selectedProfessionalId || undefined,
         }
       });
 
@@ -229,6 +254,7 @@ export function UsersRolesPage() {
       toast.success("Barbeiro criado com sucesso!");
       queryClient.invalidateQueries({ queryKey: ["admin-users-roles"] });
       queryClient.invalidateQueries({ queryKey: ["professionals"] });
+      queryClient.invalidateQueries({ queryKey: ["unlinked-professionals"] });
       setIsCreateDialogOpen(false);
       resetCreateForm();
     } catch (error: any) {
@@ -244,6 +270,7 @@ export function UsersRolesPage() {
     setNewBarberEmail("");
     setNewBarberPassword("");
     setNewBarberPhone("");
+    setSelectedProfessionalId("");
     setShowPassword(false);
     setPasswordError(null);
     setEmailError(null);
@@ -591,6 +618,40 @@ export function UsersRolesPage() {
                 placeholder="(11) 99999-9999"
               />
             </div>
+
+            {/* Professional Linking */}
+            {unlinkedProfessionals && unlinkedProfessionals.length > 0 && (
+              <div className="space-y-2">
+                <Label>Vincular a Profissional Existente</Label>
+                <Select 
+                  value={selectedProfessionalId} 
+                  onValueChange={setSelectedProfessionalId}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Criar novo profissional" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">
+                      <div className="flex items-center gap-2">
+                        <UserPlus className="w-4 h-4" />
+                        Criar novo profissional
+                      </div>
+                    </SelectItem>
+                    {unlinkedProfessionals.map((prof) => (
+                      <SelectItem key={prof.id} value={prof.id}>
+                        <div className="flex items-center gap-2">
+                          <Link className="w-4 h-4" />
+                          {prof.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Vincule a um profissional já cadastrado ou crie um novo automaticamente.
+                </p>
+              </div>
+            )}
 
             <div className="p-3 bg-muted rounded-lg">
               <p className="text-sm text-muted-foreground">

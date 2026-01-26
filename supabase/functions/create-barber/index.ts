@@ -25,11 +25,12 @@ serve(async (req) => {
         .regex(/[a-zA-Z]/, "Senha deve conter pelo menos uma letra")
         .regex(/[0-9]/, "Senha deve conter pelo menos um número"),
       phone: z.string().regex(/^\d{10,15}$/).optional().or(z.literal("")),
+      professional_id: z.string().uuid().optional(), // Link to existing professional
     });
 
     const body = await req.json();
     const validatedData = createBarberSchema.parse(body);
-    const { barbershop_id, name, email, password, phone } = validatedData;
+    const { barbershop_id, name, email, password, phone, professional_id } = validatedData;
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -167,34 +168,50 @@ serve(async (req) => {
       throw roleInsertError;
     }
 
-    // Create professional entry linked to this user
-    const { data: existingProfessional } = await supabaseAdmin
-      .from('professionals')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('barbershop_id', barbershop_id)
-      .maybeSingle();
-
-    if (!existingProfessional) {
-      const { error: profError } = await supabaseAdmin
+    // Link to professional entry
+    if (professional_id) {
+      // Link to specified existing professional
+      const { error: linkError } = await supabaseAdmin
         .from('professionals')
-        .insert({
-          barbershop_id: barbershop_id,
-          name: name,
-          user_id: userId,
-          is_active: true,
-        });
+        .update({ user_id: userId, is_active: true })
+        .eq('id', professional_id)
+        .eq('barbershop_id', barbershop_id);
 
-      if (profError) {
-        console.error('Error creating professional:', profError);
-        // Non-fatal, continue
+      if (linkError) {
+        console.error('Error linking to professional:', linkError);
+      } else {
+        console.log('Linked user to existing professional:', professional_id);
       }
     } else {
-      // Update existing professional with user_id link
-      await supabaseAdmin
+      // Check if user already has a professional record
+      const { data: existingProfessional } = await supabaseAdmin
         .from('professionals')
-        .update({ user_id: userId, name: name, is_active: true })
-        .eq('id', existingProfessional.id);
+        .select('id')
+        .eq('user_id', userId)
+        .eq('barbershop_id', barbershop_id)
+        .maybeSingle();
+
+      if (!existingProfessional) {
+        // Create new professional entry
+        const { error: profError } = await supabaseAdmin
+          .from('professionals')
+          .insert({
+            barbershop_id: barbershop_id,
+            name: name,
+            user_id: userId,
+            is_active: true,
+          });
+
+        if (profError) {
+          console.error('Error creating professional:', profError);
+        }
+      } else {
+        // Update existing professional
+        await supabaseAdmin
+          .from('professionals')
+          .update({ name: name, is_active: true })
+          .eq('id', existingProfessional.id);
+      }
     }
 
     console.log('Barber created successfully:', { userId, email, barbershop_id });
