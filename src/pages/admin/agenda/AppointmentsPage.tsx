@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { format, parseISO, isToday, isTomorrow, startOfDay } from "date-fns";
+import { format, parseISO, isToday, isTomorrow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { 
   Calendar, 
@@ -10,10 +10,10 @@ import {
   CheckCircle2,
   Clock,
   XCircle,
-  User,
-  Scissors,
   Phone,
-  Loader2
+  Scissors,
+  Loader2,
+  AlertCircle
 } from "lucide-react";
 
 import { PageHeader } from "@/components/admin/shared/PageHeader";
@@ -22,6 +22,7 @@ import { NewAppointmentModal } from "@/components/admin/appointments/NewAppointm
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,6 +40,8 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useBarbershopContext } from "@/hooks/useBarbershopContext";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { sendNotificationForBooking } from "@/lib/notifications/bookingNotifications";
@@ -51,6 +54,7 @@ interface Booking {
   total_price: number | null;
   notes: string | null;
   created_at: string;
+  professional_id: string;
   client: {
     name: string | null;
     phone: string | null;
@@ -94,15 +98,36 @@ const STATUS_CONFIG = {
 
 export function AppointmentsPage() {
   const { barbershop } = useBarbershopContext();
+  const { user } = useAuth();
+  const { isAdmin, isBarber } = useUserRole(barbershop?.id);
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState<string>("all");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  // Fetch bookings
+  // For barbers, get their linked professional ID
+  const { data: linkedProfessional } = useQuery({
+    queryKey: ["linked-professional", user?.id, barbershop?.id],
+    queryFn: async () => {
+      if (!user?.id || !barbershop?.id) return null;
+      
+      const { data, error } = await supabase
+        .from("professionals")
+        .select("id, name")
+        .eq("barbershop_id", barbershop.id)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id && !!barbershop?.id && isBarber,
+  });
+
+  // Fetch bookings - filtered by professional for barbers
   const { data: bookings, isLoading } = useQuery({
-    queryKey: ["admin-bookings", barbershop?.id, statusFilter, dateFilter],
+    queryKey: ["admin-bookings", barbershop?.id, statusFilter, dateFilter, linkedProfessional?.id, isAdmin],
     queryFn: async () => {
       if (!barbershop?.id) return [];
       
@@ -117,6 +142,7 @@ export function AppointmentsPage() {
           notes,
           created_at,
           client_id,
+          professional_id,
           service:services (
             name,
             duration_minutes
@@ -129,6 +155,11 @@ export function AppointmentsPage() {
         .eq("barbershop_id", barbershop.id)
         .order("booking_date", { ascending: false })
         .order("booking_time", { ascending: false });
+      
+      // CRITICAL: For barbers, only show their own appointments
+      if (isBarber && !isAdmin && linkedProfessional?.id) {
+        query = query.eq("professional_id", linkedProfessional.id);
+      }
       
       // Apply status filter
       if (statusFilter !== "all") {
@@ -169,7 +200,7 @@ export function AppointmentsPage() {
       
       return bookingsWithClients as unknown as Booking[];
     },
-    enabled: !!barbershop?.id,
+    enabled: !!barbershop?.id && (isAdmin || (isBarber && linkedProfessional?.id !== undefined)),
   });
 
   // Update booking status
@@ -211,151 +242,187 @@ export function AppointmentsPage() {
     return format(date, "dd/MM/yyyy", { locale: ptBR });
   };
 
-  // Define table columns
-  const columns: Column<Booking>[] = useMemo(() => [
-    {
-      key: "booking_date",
-      header: "Data/Hora",
-      sortable: true,
-      cell: (row) => (
-        <div className="flex flex-col">
-          <span className="font-medium">{formatDate(row.booking_date)}</span>
-          <span className="text-sm text-muted-foreground">{row.booking_time.substring(0, 5)}</span>
-        </div>
-      ),
-    },
-    {
-      key: "client",
-      header: "Cliente",
-      cell: (row) => (
-        <div className="flex items-center gap-3">
-          <Avatar className="h-8 w-8">
-            <AvatarFallback className="bg-primary/10 text-primary text-xs">
-              {(row.client?.name || "C")[0].toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+  // Define table columns - hide professional column for barbers
+  const columns: Column<Booking>[] = useMemo(() => {
+    const baseColumns: Column<Booking>[] = [
+      {
+        key: "booking_date",
+        header: "Data/Hora",
+        sortable: true,
+        cell: (row) => (
           <div className="flex flex-col">
-            <span className="font-medium">{row.client?.name || "Cliente"}</span>
-            {row.client?.phone && (
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <Phone className="h-3 w-3" />
-                {row.client.phone}
-              </span>
-            )}
+            <span className="font-medium">{formatDate(row.booking_date)}</span>
+            <span className="text-sm text-muted-foreground">{row.booking_time.substring(0, 5)}</span>
           </div>
-        </div>
-      ),
-    },
-    {
-      key: "service",
-      header: "Serviço",
-      cell: (row) => (
-        <div className="flex items-center gap-2">
-          <Scissors className="h-4 w-4 text-muted-foreground" />
-          <div className="flex flex-col">
-            <span>{row.service?.name || "—"}</span>
-            {row.service?.duration_minutes && (
-              <span className="text-xs text-muted-foreground">
-                {row.service.duration_minutes} min
-              </span>
-            )}
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: "professional",
-      header: "Profissional",
-      cell: (row) => (
-        <div className="flex items-center gap-2">
-          <Avatar className="h-6 w-6">
-            <AvatarImage src={row.professional?.photo_url || undefined} />
-            <AvatarFallback className="text-xs">
-              {(row.professional?.name || "P")[0].toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <span>{row.professional?.name || "—"}</span>
-        </div>
-      ),
-    },
-    {
-      key: "total_price",
-      header: "Valor",
-      sortable: true,
-      cell: (row) => (
-        <span className="font-medium">
-          R$ {(row.total_price || 0).toFixed(2)}
-        </span>
-      ),
-    },
-    {
-      key: "status",
-      header: "Status",
-      cell: (row) => {
-        const config = STATUS_CONFIG[row.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.pending;
-        const Icon = config.icon;
-        return (
-          <Badge variant={config.variant} className="gap-1">
-            <Icon className="h-3 w-3" />
-            {config.label}
-          </Badge>
-        );
+        ),
       },
-    },
-    {
-      key: "actions",
-      header: "",
-      cell: (row) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              {updatingId === row.id ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <MoreHorizontal className="h-4 w-4" />
+      {
+        key: "client",
+        header: "Cliente",
+        cell: (row) => (
+          <div className="flex items-center gap-3">
+            <Avatar className="h-8 w-8">
+              <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                {(row.client?.name || "C")[0].toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col">
+              <span className="font-medium">{row.client?.name || "Cliente"}</span>
+              {row.client?.phone && (
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Phone className="h-3 w-3" />
+                  {row.client.phone}
+                </span>
               )}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Ações</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {row.status !== "confirmed" && (
-              <DropdownMenuItem onClick={() => handleUpdateStatus(row.id, "confirmed")}>
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-600" />
-                Confirmar
-              </DropdownMenuItem>
-            )}
-            {row.status !== "completed" && row.status !== "cancelled" && (
-              <DropdownMenuItem onClick={() => handleUpdateStatus(row.id, "completed")}>
-                <CheckCircle2 className="mr-2 h-4 w-4" />
-                Marcar como Concluido
-              </DropdownMenuItem>
-            )}
-            {row.status !== "cancelled" && (
-              <DropdownMenuItem 
-                onClick={() => handleUpdateStatus(row.id, "cancelled")}
-                className="text-destructive"
-              >
-                <XCircle className="mr-2 h-4 w-4" />
-                Cancelar
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
-    },
-  ], [updatingId]);
+            </div>
+          </div>
+        ),
+      },
+      {
+        key: "service",
+        header: "Serviço",
+        cell: (row) => (
+          <div className="flex items-center gap-2">
+            <Scissors className="h-4 w-4 text-muted-foreground" />
+            <div className="flex flex-col">
+              <span>{row.service?.name || "—"}</span>
+              {row.service?.duration_minutes && (
+                <span className="text-xs text-muted-foreground">
+                  {row.service.duration_minutes} min
+                </span>
+              )}
+            </div>
+          </div>
+        ),
+      },
+    ];
+
+    // Only show professional column for admins
+    if (isAdmin) {
+      baseColumns.push({
+        key: "professional",
+        header: "Profissional",
+        cell: (row) => (
+          <div className="flex items-center gap-2">
+            <Avatar className="h-6 w-6">
+              <AvatarImage src={row.professional?.photo_url || undefined} />
+              <AvatarFallback className="text-xs">
+                {(row.professional?.name || "P")[0].toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <span>{row.professional?.name || "—"}</span>
+          </div>
+        ),
+      });
+    }
+
+    baseColumns.push(
+      {
+        key: "total_price",
+        header: "Valor",
+        sortable: true,
+        cell: (row) => (
+          <span className="font-medium">
+            R$ {(row.total_price || 0).toFixed(2)}
+          </span>
+        ),
+      },
+      {
+        key: "status",
+        header: "Status",
+        cell: (row) => {
+          const config = STATUS_CONFIG[row.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.pending;
+          const Icon = config.icon;
+          return (
+            <Badge variant={config.variant} className="gap-1">
+              <Icon className="h-3 w-3" />
+              {config.label}
+            </Badge>
+          );
+        },
+      },
+      {
+        key: "actions",
+        header: "",
+        cell: (row) => (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                {updatingId === row.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <MoreHorizontal className="h-4 w-4" />
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Ações</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {row.status !== "confirmed" && (
+                <DropdownMenuItem onClick={() => handleUpdateStatus(row.id, "confirmed")}>
+                  <CheckCircle2 className="mr-2 h-4 w-4 text-green-600" />
+                  Confirmar
+                </DropdownMenuItem>
+              )}
+              {row.status !== "completed" && row.status !== "cancelled" && (
+                <DropdownMenuItem onClick={() => handleUpdateStatus(row.id, "completed")}>
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                  Marcar como Concluido
+                </DropdownMenuItem>
+              )}
+              {row.status !== "cancelled" && (
+                <DropdownMenuItem 
+                  onClick={() => handleUpdateStatus(row.id, "cancelled")}
+                  className="text-destructive"
+                >
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Cancelar
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ),
+      }
+    );
+
+    return baseColumns;
+  }, [updatingId, isAdmin]);
+
+  // Show warning if barber has no linked professional
+  if (isBarber && !isAdmin && !linkedProfessional && !isLoading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Meus Agendamentos"
+          subtitle="Visualize seus agendamentos"
+        />
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Sua conta não está vinculada a um profissional. Entre em contato com o administrador.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  const pageTitle = isBarber && !isAdmin ? "Meus Agendamentos" : "Agendamentos";
+  const pageSubtitle = isBarber && !isAdmin 
+    ? `Agendamentos de ${linkedProfessional?.name || "você"}`
+    : "Gerencie todos os agendamentos da barbearia";
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Agendamentos"
-        subtitle="Gerencie todos os agendamentos da barbearia"
+        title={pageTitle}
+        subtitle={pageSubtitle}
         actions={
-          <Button onClick={() => setIsModalOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Novo Agendamento
-          </Button>
+          isAdmin ? (
+            <Button onClick={() => setIsModalOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Novo Agendamento
+            </Button>
+          ) : undefined
         }
       />
 
@@ -398,16 +465,18 @@ export function AppointmentsPage() {
           title: "Nenhum agendamento encontrado",
           description: statusFilter !== "all" || dateFilter !== "all"
             ? "Tente ajustar os filtros para ver mais resultados"
-            : "Clique em 'Novo Agendamento' para criar o primeiro",
-          action: {
+            : isAdmin 
+              ? "Clique em 'Novo Agendamento' para criar o primeiro"
+              : "Você ainda não possui agendamentos",
+          action: isAdmin ? {
             label: "Novo Agendamento",
             onClick: () => setIsModalOpen(true),
-          },
+          } : undefined,
         }}
       />
 
-      {/* New Appointment Modal */}
-      {barbershop?.id && (
+      {/* New Appointment Modal - Admin only */}
+      {barbershop?.id && isAdmin && (
         <NewAppointmentModal
           open={isModalOpen}
           onOpenChange={setIsModalOpen}
