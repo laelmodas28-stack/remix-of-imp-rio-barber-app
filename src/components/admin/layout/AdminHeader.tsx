@@ -92,7 +92,7 @@ export function AdminHeader() {
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <Link to={`${baseUrl}/admin/settings`} className="flex items-center cursor-pointer">
+            <Link to={`${baseUrl}/admin/settings/barbershop`} className="flex items-center cursor-pointer">
               <Settings className="mr-2 h-4 w-4" />
               Configuracoes
             </Link>
