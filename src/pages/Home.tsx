@@ -114,8 +114,19 @@ const Home = () => {
       <Header />
 
       {/* Hero Section */}
-      <section className="relative py-20 px-4 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/10 to-transparent" />
+      <section className="relative py-20 px-4 overflow-hidden min-h-[400px]">
+        {/* Cover Image Background */}
+        {barbershop?.cover_url ? (
+          <>
+            <div 
+              className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+              style={{ backgroundImage: `url(${barbershop.cover_url})` }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/60 to-background" />
+          </>
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-b from-primary/10 to-transparent" />
+        )}
         <div className="container mx-auto text-center relative z-10">
           <div className="flex items-center justify-center gap-3 mb-6">
             <h1 className="text-5xl md:text-6xl font-bold">
