@@ -25,6 +25,7 @@ import {
   Shield,
   Settings,
   HelpCircle,
+  Images,
   type LucideIcon,
 } from "lucide-react";
 
@@ -91,8 +92,9 @@ export const adminRoutes: RouteConfig[] = [
 
   // Settings - Admin only
   { id: "settings-barbershop", label: "Perfil da Barbearia", path: "settings/barbershop", icon: Building, parentId: "settings", order: 1, description: "Dados do estabelecimento", access: "admin" },
-  { id: "settings-users", label: "Equipe", path: "settings/users-roles", icon: Shield, parentId: "settings", order: 2, description: "Gerenciar acessos", access: "admin" },
-  { id: "settings-preferences", label: "Preferencias", path: "settings/preferences", icon: Settings, parentId: "settings", order: 3, description: "Configuracoes gerais", access: "admin" },
+  { id: "settings-gallery", label: "Galeria de Fotos", path: "settings/gallery", icon: Images, parentId: "settings", order: 2, description: "Fotos da barbearia", access: "admin" },
+  { id: "settings-users", label: "Equipe", path: "settings/users-roles", icon: Shield, parentId: "settings", order: 3, description: "Gerenciar acessos", access: "admin" },
+  { id: "settings-preferences", label: "Preferencias", path: "settings/preferences", icon: Settings, parentId: "settings", order: 4, description: "Configuracoes gerais", access: "admin" },
 
   // Help - All users
   { id: "help-support", label: "Suporte", path: "help/support", icon: HelpCircle, parentId: "help", order: 1, description: "Entre em contato", access: "all" },
