@@ -12,7 +12,6 @@ import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Settings, Calendar, Bell, CreditCard, Clock, Save, Loader2 } from "lucide-react";
-
 interface BarbershopSettings {
   booking_advance_days: number;
   booking_cancellation_hours: number;
@@ -24,7 +23,6 @@ interface BarbershopSettings {
   deposit_percentage: number;
   timezone: string;
 }
-
 const defaultSettings: BarbershopSettings = {
   booking_advance_days: 30,
   booking_cancellation_hours: 2,
@@ -34,40 +32,55 @@ const defaultSettings: BarbershopSettings = {
   allow_online_payments: false,
   require_deposit: false,
   deposit_percentage: 0,
-  timezone: "America/Sao_Paulo",
+  timezone: "America/Sao_Paulo"
 };
-
-const timezones = [
-  { value: "America/Sao_Paulo", label: "São Paulo (GMT-3)" },
-  { value: "America/Manaus", label: "Manaus (GMT-4)" },
-  { value: "America/Bahia", label: "Bahia (GMT-3)" },
-  { value: "America/Fortaleza", label: "Fortaleza (GMT-3)" },
-  { value: "America/Recife", label: "Recife (GMT-3)" },
-  { value: "America/Cuiaba", label: "Cuiabá (GMT-4)" },
-  { value: "America/Porto_Velho", label: "Porto Velho (GMT-4)" },
-  { value: "America/Rio_Branco", label: "Rio Branco (GMT-5)" },
-];
-
+const timezones = [{
+  value: "America/Sao_Paulo",
+  label: "São Paulo (GMT-3)"
+}, {
+  value: "America/Manaus",
+  label: "Manaus (GMT-4)"
+}, {
+  value: "America/Bahia",
+  label: "Bahia (GMT-3)"
+}, {
+  value: "America/Fortaleza",
+  label: "Fortaleza (GMT-3)"
+}, {
+  value: "America/Recife",
+  label: "Recife (GMT-3)"
+}, {
+  value: "America/Cuiaba",
+  label: "Cuiabá (GMT-4)"
+}, {
+  value: "America/Porto_Velho",
+  label: "Porto Velho (GMT-4)"
+}, {
+  value: "America/Rio_Branco",
+  label: "Rio Branco (GMT-5)"
+}];
 export function PreferencesPage() {
-  const { barbershop } = useBarbershopContext();
+  const {
+    barbershop
+  } = useBarbershopContext();
   const queryClient = useQueryClient();
   const [settings, setSettings] = useState<BarbershopSettings>(defaultSettings);
-
-  const { data: existingSettings, isLoading } = useQuery({
+  const {
+    data: existingSettings,
+    isLoading
+  } = useQuery({
     queryKey: ["barbershop-preferences", barbershop?.id],
     queryFn: async () => {
       if (!barbershop?.id) return null;
-      const { data, error } = await supabase
-        .from("barbershop_settings")
-        .select("*")
-        .eq("barbershop_id", barbershop.id)
-        .maybeSingle();
+      const {
+        data,
+        error
+      } = await supabase.from("barbershop_settings").select("*").eq("barbershop_id", barbershop.id).maybeSingle();
       if (error) throw error;
       return data;
     },
-    enabled: !!barbershop?.id,
+    enabled: !!barbershop?.id
   });
-
   useEffect(() => {
     if (existingSettings) {
       setSettings({
@@ -79,79 +92,53 @@ export function PreferencesPage() {
         allow_online_payments: existingSettings.allow_online_payments ?? defaultSettings.allow_online_payments,
         require_deposit: existingSettings.require_deposit ?? defaultSettings.require_deposit,
         deposit_percentage: existingSettings.deposit_percentage ? Number(existingSettings.deposit_percentage) : defaultSettings.deposit_percentage,
-        timezone: existingSettings.timezone ?? defaultSettings.timezone,
+        timezone: existingSettings.timezone ?? defaultSettings.timezone
       });
     }
   }, [existingSettings]);
-
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!barbershop?.id) throw new Error("Barbearia não encontrada");
-      
       const payload = {
         barbershop_id: barbershop.id,
         ...settings,
-        updated_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
-
       if (existingSettings) {
-        const { error } = await supabase
-          .from("barbershop_settings")
-          .update(payload)
-          .eq("id", existingSettings.id);
+        const {
+          error
+        } = await supabase.from("barbershop_settings").update(payload).eq("id", existingSettings.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from("barbershop_settings")
-          .insert(payload);
+        const {
+          error
+        } = await supabase.from("barbershop_settings").insert(payload);
         if (error) throw error;
       }
     },
     onSuccess: () => {
       toast.success("Preferências salvas com sucesso!");
-      queryClient.invalidateQueries({ queryKey: ["barbershop-preferences"] });
+      queryClient.invalidateQueries({
+        queryKey: ["barbershop-preferences"]
+      });
     },
     onError: (error: any) => {
       toast.error(error.message || "Erro ao salvar preferências");
-    },
+    }
   });
-
   const handleSave = () => {
     saveMutation.mutate();
   };
-
   if (!barbershop?.id) {
-    return (
-      <AdminPageScaffold
-        title="Preferências"
-        subtitle="Configurações gerais do sistema"
-        icon={Settings}
-      />
-    );
+    return <AdminPageScaffold title="Preferências" subtitle="Configurações gerais do sistema" icon={Settings} />;
   }
-
-  return (
-    <AdminPageScaffold
-      title="Preferências"
-      subtitle="Configurações gerais do sistema"
-      icon={Settings}
-      actions={
-        <Button onClick={handleSave} disabled={saveMutation.isPending}>
-          {saveMutation.isPending ? (
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          ) : (
-            <Save className="w-4 h-4 mr-2" />
-          )}
+  return <AdminPageScaffold title="Preferências" subtitle="Configurações gerais do sistema" icon={Settings} actions={<Button onClick={handleSave} disabled={saveMutation.isPending}>
+          {saveMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
           Salvar Preferências
-        </Button>
-      }
-    >
-      {isLoading ? (
-        <div className="flex items-center justify-center py-12">
+        </Button>}>
+      {isLoading ? <div className="flex items-center justify-center py-12">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </div>
-      ) : (
-        <div className="space-y-6">
+        </div> : <div className="space-y-6">
           {/* Booking Settings */}
           <Card>
             <CardHeader>
@@ -167,28 +154,20 @@ export function PreferencesPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="advanceDays">Antecedência máxima (dias)</Label>
-                  <Input
-                    id="advanceDays"
-                    type="number"
-                    min={1}
-                    max={365}
-                    value={settings.booking_advance_days}
-                    onChange={(e) => setSettings(prev => ({ ...prev, booking_advance_days: parseInt(e.target.value) || 30 }))}
-                  />
+                  <Input id="advanceDays" type="number" min={1} max={365} value={settings.booking_advance_days} onChange={e => setSettings(prev => ({
+                ...prev,
+                booking_advance_days: parseInt(e.target.value) || 30
+              }))} />
                   <p className="text-xs text-muted-foreground">
                     Quantos dias no futuro os clientes podem agendar
                   </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="cancellationHours">Limite de cancelamento (horas)</Label>
-                  <Input
-                    id="cancellationHours"
-                    type="number"
-                    min={0}
-                    max={72}
-                    value={settings.booking_cancellation_hours}
-                    onChange={(e) => setSettings(prev => ({ ...prev, booking_cancellation_hours: parseInt(e.target.value) || 2 }))}
-                  />
+                  <Input id="cancellationHours" type="number" min={0} max={72} value={settings.booking_cancellation_hours} onChange={e => setSettings(prev => ({
+                ...prev,
+                booking_cancellation_hours: parseInt(e.target.value) || 2
+              }))} />
                   <p className="text-xs text-muted-foreground">
                     Até quantas horas antes o cliente pode cancelar
                   </p>
@@ -204,10 +183,10 @@ export function PreferencesPage() {
                     Confirmar agendamentos automaticamente ao serem criados
                   </p>
                 </div>
-                <Switch
-                  checked={settings.auto_confirm_bookings}
-                  onCheckedChange={(checked) => setSettings(prev => ({ ...prev, auto_confirm_bookings: checked }))}
-                />
+                <Switch checked={settings.auto_confirm_bookings} onCheckedChange={checked => setSettings(prev => ({
+              ...prev,
+              auto_confirm_bookings: checked
+            }))} />
               </div>
             </CardContent>
           </Card>
@@ -231,19 +210,18 @@ export function PreferencesPage() {
                     Notificar clientes antes do horário agendado
                   </p>
                 </div>
-                <Switch
-                  checked={settings.send_booking_reminders}
-                  onCheckedChange={(checked) => setSettings(prev => ({ ...prev, send_booking_reminders: checked }))}
-                />
+                <Switch checked={settings.send_booking_reminders} onCheckedChange={checked => setSettings(prev => ({
+              ...prev,
+              send_booking_reminders: checked
+            }))} />
               </div>
 
-              {settings.send_booking_reminders && (
-                <div className="space-y-2 pl-4 border-l-2 border-primary/20">
+              {settings.send_booking_reminders && <div className="space-y-2 pl-4 border-l-2 border-primary/20">
                   <Label htmlFor="reminderHours">Horas antes do agendamento</Label>
-                  <Select
-                    value={settings.reminder_hours_before.toString()}
-                    onValueChange={(v) => setSettings(prev => ({ ...prev, reminder_hours_before: parseInt(v) }))}
-                  >
+                  <Select value={settings.reminder_hours_before.toString()} onValueChange={v => setSettings(prev => ({
+              ...prev,
+              reminder_hours_before: parseInt(v)
+            }))}>
                     <SelectTrigger className="w-48">
                       <SelectValue />
                     </SelectTrigger>
@@ -256,74 +234,12 @@ export function PreferencesPage() {
                       <SelectItem value="48">48 horas antes</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-              )}
+                </div>}
             </CardContent>
           </Card>
 
           {/* Payment Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="w-5 h-5" />
-                Pagamentos Online
-              </CardTitle>
-              <CardDescription>
-                Configure opções de pagamento online
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Aceitar pagamentos online</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Permitir que clientes paguem online ao agendar
-                  </p>
-                </div>
-                <Switch
-                  checked={settings.allow_online_payments}
-                  onCheckedChange={(checked) => setSettings(prev => ({ ...prev, allow_online_payments: checked }))}
-                />
-              </div>
-
-              {settings.allow_online_payments && (
-                <>
-                  <Separator />
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Exigir sinal/depósito</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Cobrar um valor antecipado para confirmar o agendamento
-                      </p>
-                    </div>
-                    <Switch
-                      checked={settings.require_deposit}
-                      onCheckedChange={(checked) => setSettings(prev => ({ ...prev, require_deposit: checked }))}
-                    />
-                  </div>
-
-                  {settings.require_deposit && (
-                    <div className="space-y-2 pl-4 border-l-2 border-primary/20">
-                      <Label htmlFor="depositPercentage">Porcentagem do sinal (%)</Label>
-                      <Input
-                        id="depositPercentage"
-                        type="number"
-                        min={5}
-                        max={100}
-                        value={settings.deposit_percentage}
-                        onChange={(e) => setSettings(prev => ({ ...prev, deposit_percentage: parseInt(e.target.value) || 0 }))}
-                        className="w-32"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Valor cobrado antecipadamente (ex: 30% do total)
-                      </p>
-                    </div>
-                  )}
-                </>
-              )}
-            </CardContent>
-          </Card>
+          
 
           {/* Timezone Settings */}
           <Card>
@@ -339,28 +255,23 @@ export function PreferencesPage() {
             <CardContent>
               <div className="space-y-2">
                 <Label htmlFor="timezone">Fuso horário</Label>
-                <Select
-                  value={settings.timezone}
-                  onValueChange={(v) => setSettings(prev => ({ ...prev, timezone: v }))}
-                >
+                <Select value={settings.timezone} onValueChange={v => setSettings(prev => ({
+              ...prev,
+              timezone: v
+            }))}>
                   <SelectTrigger className="w-72">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {timezones.map((tz) => (
-                      <SelectItem key={tz.value} value={tz.value}>
+                    {timezones.map(tz => <SelectItem key={tz.value} value={tz.value}>
                         {tz.label}
-                      </SelectItem>
-                    ))}
+                      </SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
             </CardContent>
           </Card>
-        </div>
-      )}
-    </AdminPageScaffold>
-  );
+        </div>}
+    </AdminPageScaffold>;
 }
-
 export default PreferencesPage;
