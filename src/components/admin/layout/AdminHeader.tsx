@@ -10,9 +10,8 @@ import { AdminTour } from "../AdminTour";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBarbershopContext } from "@/hooks/useBarbershopContext";
 import { useNavigate, Link } from "react-router-dom";
-import { Search, Plus, User, Settings, LogOut, ExternalLink } from "lucide-react";
+import { Plus, User, Settings, LogOut, ExternalLink } from "lucide-react";
 import { useState } from "react";
-
 export function AdminHeader() {
   const {
     user,
@@ -24,19 +23,12 @@ export function AdminHeader() {
   } = useBarbershopContext();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  
   const handleLogout = async () => {
     await signOut();
     navigate("/");
   };
-  
   const userInitials = user?.user_metadata?.full_name?.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) || user?.email?.slice(0, 2).toUpperCase() || "U";
-  
-  return (
-    <header 
-      className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-4 border-b border-border bg-header px-6"
-      data-tour="header"
-    >
+  return <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-4 border-b border-border bg-header px-6" data-tour="header">
       <SidebarTrigger className="-ml-2 text-muted-foreground hover:text-foreground" />
       <Separator orientation="vertical" className="h-6" />
       
@@ -46,15 +38,12 @@ export function AdminHeader() {
 
       {/* Search */}
       <div className="relative hidden md:block">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        
       </div>
 
       {/* Quick Action */}
       <Button asChild size="sm" className="hidden sm:flex gap-2" data-tour="quick-action">
-        <Link to={`${baseUrl}/admin/bookings/new`}>
-          <Plus className="h-4 w-4" />
-          Novo Agendamento
-        </Link>
+        
       </Button>
 
       {/* Notifications */}
@@ -115,8 +104,6 @@ export function AdminHeader() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-    </header>
-  );
+    </header>;
 }
-
 export default AdminHeader;
