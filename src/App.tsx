@@ -93,6 +93,7 @@ import SuperAdminDashboard from "./pages/superadmin/SuperAdminDashboard";
 import BarbershopsPage from "./pages/superadmin/BarbershopsPage";
 import SuperAdminSubscriptionsPage from "./pages/superadmin/SubscriptionsPage";
 import LogsPage from "./pages/superadmin/LogsPage";
+import SuperAdminSettingsPage from "./pages/superadmin/SettingsPage";
 
 const queryClient = new QueryClient();
 
@@ -238,6 +239,7 @@ const App = () => (
                   <Route path="barbershops" element={<BarbershopsPage />} />
                   <Route path="subscriptions" element={<SuperAdminSubscriptionsPage />} />
                   <Route path="logs" element={<LogsPage />} />
+                  <Route path="settings" element={<SuperAdminSettingsPage />} />
                 </Route>
 
                 <Route path="*" element={<NotFound />} />
