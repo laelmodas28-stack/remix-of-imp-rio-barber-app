@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useBarbershopContext } from "@/hooks/useBarbershopContext";
@@ -21,9 +22,11 @@ import {
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth, subMonths, isToday, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { NewAppointmentModal } from "@/components/admin/appointments/NewAppointmentModal";
 
 export function DashboardPage() {
   const { barbershop, baseUrl } = useBarbershopContext();
+  const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false);
 
   const { data: bookings = [], isLoading: bookingsLoading } = useQuery({
     queryKey: ["admin-dashboard-bookings", barbershop?.id],
@@ -132,11 +135,9 @@ export function DashboardPage() {
         title="Dashboard"
         subtitle={`Bem-vindo ao painel administrativo de ${barbershop?.name}`}
         actions={
-          <Button asChild className="gap-2">
-            <Link to={`${baseUrl}/admin/bookings/new`}>
-              <Plus className="h-4 w-4" />
-              Novo Agendamento
-            </Link>
+          <Button onClick={() => setShowNewAppointmentModal(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Novo Agendamento
           </Button>
         }
       />
@@ -295,6 +296,14 @@ export function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {barbershop?.id && (
+        <NewAppointmentModal
+          open={showNewAppointmentModal}
+          onOpenChange={setShowNewAppointmentModal}
+          barbershopId={barbershop.id}
+        />
+      )}
     </div>
   );
 }
