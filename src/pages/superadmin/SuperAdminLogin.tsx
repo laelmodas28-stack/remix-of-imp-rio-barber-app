@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import imperioLogo from "@/assets/imperio-barber-logo.jpg";
 
 export function SuperAdminLogin() {
   const navigate = useNavigate();
@@ -63,8 +64,8 @@ export function SuperAdminLogin() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mb-4">
-            <Shield className="w-8 h-8 text-primary" />
+          <div className="mx-auto w-24 h-24 mb-4">
+            <img src={imperioLogo} alt="Império Barber" className="w-full h-full object-contain rounded-full" />
           </div>
           <CardTitle className="text-2xl">Super Admin</CardTitle>
           <CardDescription>
