@@ -9,7 +9,8 @@ import {
   FileText, 
   LogOut,
   Shield,
-  Loader2
+  Loader2,
+  Settings
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +19,7 @@ const navItems = [
   { href: "/superadmin/barbershops", icon: Building2, label: "Barbearias" },
   { href: "/superadmin/subscriptions", icon: CreditCard, label: "Assinaturas" },
   { href: "/superadmin/logs", icon: FileText, label: "Logs" },
+  { href: "/superadmin/settings", icon: Settings, label: "Configurações" },
 ];
 
 export function SuperAdminLayout() {
