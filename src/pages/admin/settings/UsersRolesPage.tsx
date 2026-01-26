@@ -624,14 +624,14 @@ export function UsersRolesPage() {
               <div className="space-y-2">
                 <Label>Vincular a Profissional Existente</Label>
                 <Select 
-                  value={selectedProfessionalId} 
-                  onValueChange={setSelectedProfessionalId}
+                  value={selectedProfessionalId || "new"} 
+                  onValueChange={(val) => setSelectedProfessionalId(val === "new" ? "" : val)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Criar novo profissional" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">
+                    <SelectItem value="new">
                       <div className="flex items-center gap-2">
                         <UserPlus className="w-4 h-4" />
                         Criar novo profissional
