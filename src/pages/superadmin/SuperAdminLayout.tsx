@@ -13,6 +13,7 @@ import {
   Settings
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import imperioLogo from "@/assets/imperio-barber-logo.jpg";
 
 const navItems = [
   { href: "/superadmin", icon: LayoutDashboard, label: "Dashboard", exact: true },
@@ -64,8 +65,8 @@ export function SuperAdminLayout() {
       <aside className="w-64 border-r border-border bg-card flex flex-col">
         <div className="p-6 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-              <Shield className="w-6 h-6 text-primary-foreground" />
+            <div className="w-10 h-10 rounded-lg overflow-hidden">
+              <img src={imperioLogo} alt="Império Barber" className="w-full h-full object-cover" />
             </div>
             <div>
               <h1 className="font-bold text-lg">ImperioApp</h1>
