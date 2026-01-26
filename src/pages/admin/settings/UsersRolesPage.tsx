@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Shield, Search, UserCog, User, UserPlus, Loader2, Trash2, Copy, Key, RotateCcw, UserX } from "lucide-react";
+import { Shield, Search, UserCog, User, UserPlus, Loader2, Trash2, Eye, EyeOff } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -31,16 +31,6 @@ interface UserWithRole {
   status: UserStatus;
 }
 
-// Generate a secure temporary password
-function generateTempPassword(): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%";
-  let password = "";
-  for (let i = 0; i < 12; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
-}
-
 export function UsersRolesPage() {
   const { barbershop } = useBarbershopContext();
   const { user: currentUser } = useAuth();
@@ -56,10 +46,12 @@ export function UsersRolesPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newBarberName, setNewBarberName] = useState("");
   const [newBarberEmail, setNewBarberEmail] = useState("");
+  const [newBarberPassword, setNewBarberPassword] = useState("");
   const [newBarberPhone, setNewBarberPhone] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  const [tempPassword, setTempPassword] = useState<string | null>(null);
-  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   const { data: users, isLoading } = useQuery({
     queryKey: ["admin-users-roles", barbershop?.id],
@@ -97,7 +89,7 @@ export function UsersRolesPage() {
           phone: profile?.phone,
           created_at: profile?.created_at || new Date().toISOString(),
           role: role.role as AppRole,
-          status: "active" as UserStatus, // Status can be derived from is_active if needed
+          status: "active" as UserStatus,
         };
       });
     },
@@ -164,88 +156,81 @@ export function UsersRolesPage() {
     }
   };
 
+  // Validate password
+  const validatePassword = (password: string): string | null => {
+    if (password.length < 8) {
+      return "Senha deve ter no mínimo 8 caracteres";
+    }
+    if (!/[a-zA-Z]/.test(password)) {
+      return "Senha deve conter pelo menos uma letra";
+    }
+    if (!/[0-9]/.test(password)) {
+      return "Senha deve conter pelo menos um número";
+    }
+    return null;
+  };
+
+  // Validate email
+  const validateEmail = (email: string): string | null => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return "Email inválido";
+    }
+    return null;
+  };
+
   const handleCreateBarber = async () => {
-    if (!barbershop?.id || !newBarberEmail || !newBarberName) {
-      toast.error("Preencha nome e email do barbeiro");
+    if (!barbershop?.id) return;
+
+    // Reset errors
+    setPasswordError(null);
+    setEmailError(null);
+
+    // Validate inputs
+    if (!newBarberName.trim()) {
+      toast.error("Nome é obrigatório");
       return;
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(newBarberEmail)) {
-      toast.error("Email inválido");
+    const emailValidation = validateEmail(newBarberEmail);
+    if (emailValidation) {
+      setEmailError(emailValidation);
+      return;
+    }
+
+    const passwordValidation = validatePassword(newBarberPassword);
+    if (passwordValidation) {
+      setPasswordError(passwordValidation);
       return;
     }
 
     setIsCreating(true);
-    const password = generateTempPassword();
 
     try {
-      // Create user via Supabase Auth Admin (using edge function or service role)
-      // For now, we'll create a profile and user_role entry
-      // The user will need to be created via auth signup
-      
-      // First check if email already exists
-      const { data: existingProfile } = await supabase
-        .from("profiles")
-        .select("id, email")
-        .eq("email", newBarberEmail.toLowerCase().trim())
-        .maybeSingle();
-
-      if (existingProfile) {
-        // User already exists, just add the role
-        const { error: roleError } = await supabase
-          .from("user_roles")
-          .insert({
-            user_id: existingProfile.id,
-            barbershop_id: barbershop.id,
-            role: "barber",
-          });
-
-        if (roleError) {
-          if (roleError.code === "23505") {
-            toast.error("Este usuário já faz parte da equipe");
-          } else {
-            throw roleError;
-          }
-          return;
+      // Call edge function to create barber
+      const { data, error } = await supabase.functions.invoke('create-barber', {
+        body: {
+          barbershop_id: barbershop.id,
+          name: newBarberName.trim(),
+          email: newBarberEmail.toLowerCase().trim(),
+          password: newBarberPassword,
+          phone: newBarberPhone.replace(/\D/g, "") || "",
         }
+      });
 
-        // Also create a professional entry linked to this user
-        await supabase
-          .from("professionals")
-          .insert({
-            barbershop_id: barbershop.id,
-            name: newBarberName,
-            user_id: existingProfile.id,
-            is_active: true,
-          });
-
-        toast.success("Barbeiro adicionado à equipe!");
-        queryClient.invalidateQueries({ queryKey: ["admin-users-roles"] });
-        setIsCreateDialogOpen(false);
-        resetCreateForm();
-      } else {
-        // User doesn't exist - show instructions
-        toast.info("O barbeiro precisa criar uma conta primeiro. Compartilhe o link de cadastro.");
-        
-        // Create a professional entry without user_id for now
-        const { error: profError } = await supabase
-          .from("professionals")
-          .insert({
-            barbershop_id: barbershop.id,
-            name: newBarberName,
-            is_active: true,
-          });
-
-        if (profError) throw profError;
-
-        toast.success("Profissional adicionado! O barbeiro deve criar uma conta para acessar o sistema.");
-        queryClient.invalidateQueries({ queryKey: ["admin-users-roles"] });
-        queryClient.invalidateQueries({ queryKey: ["professionals"] });
-        setIsCreateDialogOpen(false);
-        resetCreateForm();
+      if (error) {
+        throw new Error(error.message || "Erro ao criar barbeiro");
       }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      toast.success("Barbeiro criado com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["admin-users-roles"] });
+      queryClient.invalidateQueries({ queryKey: ["professionals"] });
+      setIsCreateDialogOpen(false);
+      resetCreateForm();
     } catch (error: any) {
       console.error("Erro ao criar barbeiro:", error);
       toast.error(error.message || "Erro ao criar barbeiro");
@@ -257,13 +242,11 @@ export function UsersRolesPage() {
   const resetCreateForm = () => {
     setNewBarberName("");
     setNewBarberEmail("");
+    setNewBarberPassword("");
     setNewBarberPhone("");
-    setTempPassword(null);
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success("Copiado!");
+    setShowPassword(false);
+    setPasswordError(null);
+    setEmailError(null);
   };
 
   const getRoleLabel = (role: AppRole) => {
@@ -520,12 +503,15 @@ export function UsersRolesPage() {
       </Dialog>
 
       {/* Create Barber Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent>
+      <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
+        setIsCreateDialogOpen(open);
+        if (!open) resetCreateForm();
+      }}>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Adicionar Barbeiro</DialogTitle>
             <DialogDescription>
-              Adicione um novo profissional à sua equipe
+              Crie uma conta para um novo profissional da equipe
             </DialogDescription>
           </DialogHeader>
 
@@ -546,12 +532,53 @@ export function UsersRolesPage() {
                 id="barber-email"
                 type="email"
                 value={newBarberEmail}
-                onChange={(e) => setNewBarberEmail(e.target.value)}
+                onChange={(e) => {
+                  setNewBarberEmail(e.target.value);
+                  setEmailError(null);
+                }}
                 placeholder="barbeiro@email.com"
+                className={emailError ? "border-destructive" : ""}
               />
-              <p className="text-xs text-muted-foreground">
-                Se o barbeiro já tem conta, será adicionado à equipe automaticamente.
-              </p>
+              {emailError && (
+                <p className="text-xs text-destructive">{emailError}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="barber-password">Senha *</Label>
+              <div className="relative">
+                <Input
+                  id="barber-password"
+                  type={showPassword ? "text" : "password"}
+                  value={newBarberPassword}
+                  onChange={(e) => {
+                    setNewBarberPassword(e.target.value);
+                    setPasswordError(null);
+                  }}
+                  placeholder="Mínimo 8 caracteres"
+                  className={passwordError ? "border-destructive pr-10" : "pr-10"}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="w-4 h-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
+              {passwordError ? (
+                <p className="text-xs text-destructive">{passwordError}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Mínimo 8 caracteres, com pelo menos 1 letra e 1 número
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -561,8 +588,14 @@ export function UsersRolesPage() {
                 type="tel"
                 value={newBarberPhone}
                 onChange={(e) => setNewBarberPhone(e.target.value)}
-                placeholder="+5511999999999"
+                placeholder="(11) 99999-9999"
               />
+            </div>
+
+            <div className="p-3 bg-muted rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                O barbeiro será criado com a função <strong>Barbeiro</strong> e terá acesso apenas à sua própria agenda.
+              </p>
             </div>
           </div>
 
@@ -577,54 +610,12 @@ export function UsersRolesPage() {
             >
               Cancelar
             </Button>
-            <Button onClick={handleCreateBarber} disabled={isCreating || !newBarberName || !newBarberEmail}>
+            <Button 
+              onClick={handleCreateBarber} 
+              disabled={isCreating || !newBarberName || !newBarberEmail || !newBarberPassword}
+            >
               {isCreating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Adicionar Barbeiro
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Temporary Password Dialog */}
-      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Barbeiro Criado com Sucesso</DialogTitle>
-            <DialogDescription>
-              Copie a senha temporária abaixo. Ela será exibida apenas uma vez.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="p-4 bg-muted rounded-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Senha Temporária</p>
-                  <p className="text-lg font-mono font-bold">{tempPassword}</p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => tempPassword && copyToClipboard(tempPassword)}
-                >
-                  <Copy className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-              <p className="text-sm text-yellow-600 dark:text-yellow-400">
-                O barbeiro deverá trocar a senha no primeiro acesso.
-              </p>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button onClick={() => {
-              setShowPasswordDialog(false);
-              setTempPassword(null);
-            }}>
-              Entendido
+              Criar Barbeiro
             </Button>
           </DialogFooter>
         </DialogContent>
