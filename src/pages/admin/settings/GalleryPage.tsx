@@ -160,9 +160,15 @@ export function GalleryPage() {
       subtitle="Gerencie as fotos exibidas na página pública da barbearia"
       icon={Images}
       actions={
-        <Button onClick={() => setIsUploadOpen(true)} disabled={gallery && gallery.length >= 20}>
-          <ImagePlus className="w-4 h-4 mr-2" />
-          Adicionar Foto
+        <Button 
+          onClick={() => setIsUploadOpen(true)} 
+          disabled={gallery && gallery.length >= 20}
+          size="sm"
+          className="gap-2"
+        >
+          <ImagePlus className="w-4 h-4" />
+          <span className="hidden sm:inline">Adicionar Foto</span>
+          <span className="sm:hidden">Adicionar</span>
         </Button>
       }
     >
@@ -171,7 +177,7 @@ export function GalleryPage() {
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
       ) : gallery && gallery.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-4">
           {gallery.map((image) => (
             <Card key={image.id} className="group relative overflow-hidden">
               <CardContent className="p-0">
@@ -185,21 +191,20 @@ export function GalleryPage() {
                     }}
                   />
                   
-                  {/* Overlay with actions */}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      onClick={() => setDeleteId(image.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
+                  {/* Delete button - always visible on mobile, hover on desktop */}
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-1 right-1 h-7 w-7 sm:h-8 sm:w-8 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shadow-md"
+                    onClick={() => setDeleteId(image.id)}
+                  >
+                    <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  </Button>
                 </div>
                 
                 {image.title && (
-                  <div className="p-2 bg-card">
-                    <p className="text-xs text-muted-foreground truncate">{image.title}</p>
+                  <div className="p-1.5 sm:p-2 bg-card">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{image.title}</p>
                   </div>
                 )}
               </CardContent>
@@ -208,14 +213,14 @@ export function GalleryPage() {
         </div>
       ) : (
         <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Images className="w-16 h-16 text-muted-foreground/50 mb-4" />
-            <h3 className="text-lg font-medium mb-2">Nenhuma foto na galeria</h3>
-            <p className="text-muted-foreground text-center mb-4">
+          <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12 px-4">
+            <Images className="w-12 h-12 sm:w-16 sm:h-16 text-muted-foreground/50 mb-3 sm:mb-4" />
+            <h3 className="text-base sm:text-lg font-medium mb-2 text-center">Nenhuma foto na galeria</h3>
+            <p className="text-sm text-muted-foreground text-center mb-4">
               Adicione fotos dos seus trabalhos para exibir aos clientes
             </p>
-            <Button onClick={() => setIsUploadOpen(true)}>
-              <ImagePlus className="w-4 h-4 mr-2" />
+            <Button onClick={() => setIsUploadOpen(true)} size="sm" className="gap-2">
+              <ImagePlus className="w-4 h-4" />
               Adicionar Primeira Foto
             </Button>
           </CardContent>
@@ -223,35 +228,36 @@ export function GalleryPage() {
       )}
 
       {gallery && gallery.length > 0 && (
-        <p className="text-sm text-muted-foreground text-center mt-4">
-          {gallery.length}/20 fotos • Estas fotos aparecem na página pública da sua barbearia
+        <p className="text-xs sm:text-sm text-muted-foreground text-center mt-3 sm:mt-4 px-2">
+          {gallery.length}/20 fotos • Fotos exibidas na página pública
         </p>
       )}
 
       {/* Upload Dialog */}
       <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-[90vw] sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Adicionar Foto à Galeria</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-base sm:text-lg">Adicionar Foto</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
               Faça upload de uma foto para exibir na página pública
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Título (opcional)</Label>
+          <div className="space-y-3 sm:space-y-4">
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label htmlFor="title" className="text-sm">Título (opcional)</Label>
               <Input
                 id="title"
                 value={uploadTitle}
                 onChange={(e) => setUploadTitle(e.target.value)}
                 placeholder="Ex: Corte degradê moderno"
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label>Imagem</Label>
-              <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label className="text-sm">Imagem</Label>
+              <div className="border-2 border-dashed border-border rounded-lg p-4 sm:p-6 text-center">
                 <input
                   type="file"
                   accept="image/jpeg,image/jpg,image/png,image/webp"
@@ -262,17 +268,17 @@ export function GalleryPage() {
                 />
                 <label
                   htmlFor="gallery-upload"
-                  className="cursor-pointer flex flex-col items-center gap-2"
+                  className="cursor-pointer flex flex-col items-center gap-1.5 sm:gap-2"
                 >
                   {isUploading ? (
-                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 animate-spin text-primary" />
                   ) : (
-                    <Upload className="w-8 h-8 text-muted-foreground" />
+                    <Upload className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
                   )}
-                  <span className="text-sm text-muted-foreground">
-                    {isUploading ? "Enviando..." : "Clique para selecionar"}
+                  <span className="text-xs sm:text-sm text-muted-foreground">
+                    {isUploading ? "Enviando..." : "Toque para selecionar"}
                   </span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-[10px] sm:text-xs text-muted-foreground">
                     PNG, JPEG ou WebP • Máx 5MB
                   </span>
                 </label>
