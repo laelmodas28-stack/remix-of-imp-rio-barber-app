@@ -4,14 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AdminBreadcrumb } from "./AdminBreadcrumb";
 import { NotificationDropdown } from "../NotificationDropdown";
 import { AdminTour } from "../AdminTour";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBarbershopContext } from "@/hooks/useBarbershopContext";
 import { useNavigate, Link } from "react-router-dom";
-import { Plus, User, Settings, LogOut, ExternalLink } from "lucide-react";
+import { Plus, User, Settings, LogOut, Share2, Copy, Check } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 export function AdminHeader() {
   const {
     user,
@@ -54,12 +56,33 @@ export function AdminHeader() {
       {/* Tour Help Button */}
       <AdminTour barbershopId={barbershop?.id} />
 
-      {/* View Site */}
-      <Button variant="ghost" size="icon" asChild className="text-muted-foreground hover:text-foreground">
-        <Link to={baseUrl} target="_blank">
-          <ExternalLink className="h-5 w-5" />
-        </Link>
-      </Button>
+      {/* Share Barbershop Link */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-2 text-primary border-primary/30 hover:bg-primary/10 hover:text-primary"
+            onClick={() => {
+              const publicUrl = `${window.location.origin}${baseUrl}`;
+              navigator.clipboard.writeText(publicUrl);
+              toast.success("Link copiado!", {
+                description: "Compartilhe este link com seus clientes para agendarem online."
+              });
+            }}
+            data-tour="share-link"
+          >
+            <Share2 className="h-4 w-4" />
+            <span className="hidden lg:inline">Divulgar Barbearia</span>
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="max-w-xs">
+          <p className="font-medium">Link de Divulgação</p>
+          <p className="text-xs text-muted-foreground">
+            Clique para copiar o link público da sua barbearia e compartilhar com clientes
+          </p>
+        </TooltipContent>
+      </Tooltip>
 
       {/* User Menu */}
       <DropdownMenu>
