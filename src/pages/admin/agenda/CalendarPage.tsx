@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { 
   format, 
-  parseISO, 
   startOfMonth, 
   endOfMonth, 
   eachDayOfInterval,
@@ -12,8 +11,7 @@ import {
   addMonths,
   subMonths,
   startOfWeek,
-  endOfWeek,
-  getDay
+  endOfWeek
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { 
@@ -21,18 +19,21 @@ import {
   Plus, 
   ChevronLeft, 
   ChevronRight,
-  Clock
+  Clock,
+  AlertCircle
 } from "lucide-react";
 
 import { PageHeader } from "@/components/admin/shared/PageHeader";
 import { NewAppointmentModal } from "@/components/admin/appointments/NewAppointmentModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { useBarbershopContext } from "@/hooks/useBarbershopContext";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Booking {
@@ -40,6 +41,7 @@ interface Booking {
   booking_date: string;
   booking_time: string;
   status: string;
+  professional_id: string;
   client: {
     name: string | null;
   } | null;
@@ -62,14 +64,35 @@ const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"];
 
 export function CalendarPage() {
   const { barbershop } = useBarbershopContext();
+  const { user } = useAuth();
+  const { isAdmin, isBarber } = useUserRole(barbershop?.id);
   const queryClient = useQueryClient();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // For barbers, get their linked professional ID
+  const { data: linkedProfessional } = useQuery({
+    queryKey: ["linked-professional", user?.id, barbershop?.id],
+    queryFn: async () => {
+      if (!user?.id || !barbershop?.id) return null;
+      
+      const { data, error } = await supabase
+        .from("professionals")
+        .select("id, name")
+        .eq("barbershop_id", barbershop.id)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id && !!barbershop?.id && isBarber,
+  });
+
   // Fetch bookings for the month
   const { data: bookings, isLoading } = useQuery({
-    queryKey: ["calendar-bookings", barbershop?.id, format(currentMonth, "yyyy-MM")],
+    queryKey: ["calendar-bookings", barbershop?.id, format(currentMonth, "yyyy-MM"), linkedProfessional?.id, isAdmin],
     queryFn: async () => {
       if (!barbershop?.id) return [];
       
@@ -77,7 +100,7 @@ export function CalendarPage() {
       const monthEnd = format(endOfMonth(currentMonth), "yyyy-MM-dd");
       
       // Get bookings without the profile join
-      const { data: bookingsData, error } = await supabase
+      let query = supabase
         .from("bookings")
         .select(`
           id,
@@ -85,6 +108,7 @@ export function CalendarPage() {
           booking_time,
           status,
           client_id,
+          professional_id,
           service:services (name),
           professional:professionals (name)
         `)
@@ -92,6 +116,13 @@ export function CalendarPage() {
         .gte("booking_date", monthStart)
         .lte("booking_date", monthEnd)
         .order("booking_time", { ascending: true });
+      
+      // CRITICAL: For barbers, only show their own appointments
+      if (isBarber && !isAdmin && linkedProfessional?.id) {
+        query = query.eq("professional_id", linkedProfessional.id);
+      }
+      
+      const { data: bookingsData, error } = await query;
       
       if (error) throw error;
       
@@ -116,7 +147,7 @@ export function CalendarPage() {
       
       return bookingsWithClients as unknown as Booking[];
     },
-    enabled: !!barbershop?.id,
+    enabled: !!barbershop?.id && (isAdmin || (isBarber && linkedProfessional?.id !== undefined)),
   });
 
   // Group bookings by date
@@ -155,16 +186,41 @@ export function CalendarPage() {
     setSelectedDate(new Date());
   };
 
+  // Show warning if barber has no linked professional
+  if (isBarber && !isAdmin && !linkedProfessional && !isLoading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Meu Calendário"
+          subtitle="Visualize seus agendamentos"
+        />
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Sua conta não está vinculada a um profissional. Entre em contato com o administrador.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  const pageTitle = isBarber && !isAdmin ? "Meu Calendário" : "Calendário";
+  const pageSubtitle = isBarber && !isAdmin 
+    ? `Agendamentos de ${linkedProfessional?.name || "você"}`
+    : "Visualização em calendário de todos os agendamentos";
+
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Calendario"
-        subtitle="Visualizacao em calendario de todos os agendamentos"
+        title={pageTitle}
+        subtitle={pageSubtitle}
         actions={
-          <Button onClick={() => setIsModalOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Novo Agendamento
-          </Button>
+          isAdmin ? (
+            <Button onClick={() => setIsModalOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Novo Agendamento
+            </Button>
+          ) : undefined
         }
       />
 
@@ -298,9 +354,11 @@ export function CalendarPage() {
                         <p className="text-xs text-muted-foreground">
                           {booking.service?.name || "Serviço"}
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          com {booking.professional?.name || "Profissional"}
-                        </p>
+                        {isAdmin && (
+                          <p className="text-xs text-muted-foreground">
+                            com {booking.professional?.name || "Profissional"}
+                          </p>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -308,13 +366,15 @@ export function CalendarPage() {
                   <div className="text-center py-8 text-muted-foreground">
                     <CalendarDays className="h-12 w-12 mx-auto mb-2 opacity-50" />
                     <p>Nenhum agendamento</p>
-                    <Button
-                      variant="link"
-                      size="sm"
-                      onClick={() => setIsModalOpen(true)}
-                    >
-                      Criar agendamento
-                    </Button>
+                    {isAdmin && (
+                      <Button
+                        variant="link"
+                        size="sm"
+                        onClick={() => setIsModalOpen(true)}
+                      >
+                        Criar agendamento
+                      </Button>
+                    )}
                   </div>
                 )}
               </ScrollArea>
@@ -328,8 +388,8 @@ export function CalendarPage() {
         </Card>
       </div>
 
-      {/* New Appointment Modal */}
-      {barbershop?.id && (
+      {/* New Appointment Modal - Admin only */}
+      {barbershop?.id && isAdmin && (
         <NewAppointmentModal
           open={isModalOpen}
           onOpenChange={setIsModalOpen}

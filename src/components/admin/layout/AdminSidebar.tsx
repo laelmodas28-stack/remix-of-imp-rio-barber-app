@@ -57,7 +57,7 @@ export function AdminSidebar() {
   const { state } = useSidebar();
   const { barbershop, baseUrl } = useBarbershopContext();
   const { user, signOut } = useAuth();
-  const { userRole } = useUserRole(barbershop?.id);
+  const { userRole, isAdmin } = useUserRole(barbershop?.id);
   
   const collapsed = state === "collapsed";
   const adminBaseUrl = `${baseUrl}/admin`;
@@ -65,8 +65,17 @@ export function AdminSidebar() {
   // Extract path relative to admin base
   const currentPath = location.pathname.replace(`${adminBaseUrl}/`, "").replace(adminBaseUrl, "");
 
-  // Memoize grouped routes to prevent unnecessary recalculations
-  const { standalone, groups } = useMemo(() => getGroupedRoutes(), []);
+  // Determine user's effective role for filtering
+  const effectiveRole = useMemo(() => {
+    if (!userRole || userRole.length === 0) return 'barber';
+    const role = userRole.find(r => r.barbershop_id === barbershop?.id);
+    if (role?.role === 'super_admin') return 'super_admin';
+    if (role?.role === 'admin') return 'admin';
+    return 'barber';
+  }, [userRole, barbershop?.id]);
+
+  // Memoize grouped routes based on user role
+  const { standalone, groups } = useMemo(() => getGroupedRoutes(effectiveRole), [effectiveRole]);
   const groupIds = useMemo(() => groups.map(g => g.id), [groups]);
 
   // Track which groups are open (persisted in localStorage)
@@ -116,8 +125,7 @@ export function AdminSidebar() {
     .toUpperCase()
     .slice(0, 2) || user?.email?.slice(0, 2).toUpperCase() || "U";
 
-  const currentRole = userRole?.[0]?.role || "admin";
-  const roleLabel = currentRole === "super_admin" ? "Super Admin" : currentRole === "admin" ? "Administrador" : "Barbeiro";
+  const roleLabel = effectiveRole === "super_admin" ? "Super Admin" : effectiveRole === "admin" ? "Administrador" : "Barbeiro";
 
   // Get data-tour attribute for route
   const getTourId = (routeId: string) => {
@@ -158,7 +166,9 @@ export function AdminSidebar() {
               <span className="font-semibold text-sm text-sidebar-foreground truncate max-w-[140px]">
                 {barbershop?.name || "Barbearia"}
               </span>
-              <span className="text-xs text-muted-foreground">Painel Admin</span>
+              <span className="text-xs text-muted-foreground">
+                {effectiveRole === 'barber' ? 'Painel Barbeiro' : 'Painel Admin'}
+              </span>
             </div>
           )}
         </Link>

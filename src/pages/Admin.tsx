@@ -29,9 +29,7 @@ import { ProfessionalCard } from "@/components/admin/ProfessionalCard";
 import { ServiceCard } from "@/components/admin/ServiceCard";
 import { SubscriptionPlanForm } from "@/components/admin/SubscriptionPlanForm";
 import { useSubscriptions } from "@/hooks/useSubscriptions";
-import { BarberInviteForm } from "@/components/admin/BarberInviteForm";
 import { UserManagement } from "@/components/admin/UserManagement";
-import { RegistrationCodeManager } from "@/components/admin/RegistrationCodeManager";
 import { ShareableLink } from "@/components/admin/ShareableLink";
 import { WhatsAppButton } from "@/components/admin/WhatsAppButton";
 import { VideoTutorialManager } from "@/components/admin/VideoTutorialManager";
@@ -759,23 +757,9 @@ const Admin = () => {
             {barbershop && <UserManagement barbershopId={barbershop.id} />}
           </TabsContent>
 
-          {/* Códigos de Acesso - Apenas Super Admin */}
-          {isSuperAdmin && (
-            <TabsContent value="codes" className="space-y-6">
-              <RegistrationCodeManager />
-            </TabsContent>
-          )}
 
           {/* Profissionais */}
           <TabsContent value="professionals" className="space-y-6">
-            {/* Formulário de Convite para Barbeiros */}
-            {barbershop && (
-              <BarberInviteForm 
-                barbershopId={barbershop.id} 
-                onSuccess={() => queryClient.invalidateQueries({ queryKey: ["admin-professionals"] })} 
-              />
-            )}
-            
             {/* Formulário de Cadastro */}
             <ProfessionalForm onSuccess={() => queryClient.invalidateQueries({ queryKey: ["admin-professionals"] })} />
 
