@@ -600,6 +600,124 @@ export type Database = {
           },
         ]
       }
+      commission_items: {
+        Row: {
+          applied_commission_rate: number
+          barbershop_id: string
+          booking_id: string | null
+          commission_amount: number
+          created_at: string
+          gross_amount: number
+          id: string
+          occurred_at: string
+          paid_at: string | null
+          payment_status: Database["public"]["Enums"]["commission_payment_status"]
+          professional_id: string
+          source_type: Database["public"]["Enums"]["commission_source_type"]
+          updated_at: string
+        }
+        Insert: {
+          applied_commission_rate: number
+          barbershop_id: string
+          booking_id?: string | null
+          commission_amount?: number
+          created_at?: string
+          gross_amount?: number
+          id?: string
+          occurred_at: string
+          paid_at?: string | null
+          payment_status?: Database["public"]["Enums"]["commission_payment_status"]
+          professional_id: string
+          source_type?: Database["public"]["Enums"]["commission_source_type"]
+          updated_at?: string
+        }
+        Update: {
+          applied_commission_rate?: number
+          barbershop_id?: string
+          booking_id?: string | null
+          commission_amount?: number
+          created_at?: string
+          gross_amount?: number
+          id?: string
+          occurred_at?: string
+          paid_at?: string | null
+          payment_status?: Database["public"]["Enums"]["commission_payment_status"]
+          professional_id?: string
+          source_type?: Database["public"]["Enums"]["commission_source_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_items_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_items_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_items_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commission_payment_logs: {
+        Row: {
+          barbershop_id: string
+          commission_item_ids: string[]
+          created_at: string
+          id: string
+          note: string | null
+          paid_at: string
+          paid_by_user_id: string
+          professional_id: string | null
+        }
+        Insert: {
+          barbershop_id: string
+          commission_item_ids: string[]
+          created_at?: string
+          id?: string
+          note?: string | null
+          paid_at?: string
+          paid_by_user_id: string
+          professional_id?: string | null
+        }
+        Update: {
+          barbershop_id?: string
+          commission_item_ids?: string[]
+          created_at?: string
+          id?: string
+          note?: string | null
+          paid_at?: string
+          paid_by_user_id?: string
+          professional_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_payment_logs_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_payment_logs_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commission_payments: {
         Row: {
           barbershop_id: string
@@ -656,6 +774,51 @@ export type Database = {
           },
           {
             foreignKeyName: "commission_payments_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commission_rate_history: {
+        Row: {
+          barbershop_id: string
+          changed_at: string
+          changed_by_user_id: string
+          id: string
+          new_rate_percent: number
+          old_rate_percent: number | null
+          professional_id: string
+        }
+        Insert: {
+          barbershop_id: string
+          changed_at?: string
+          changed_by_user_id: string
+          id?: string
+          new_rate_percent: number
+          old_rate_percent?: number | null
+          professional_id: string
+        }
+        Update: {
+          barbershop_id?: string
+          changed_at?: string
+          changed_by_user_id?: string
+          id?: string
+          new_rate_percent?: number
+          old_rate_percent?: number | null
+          professional_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_rate_history_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_rate_history_professional_id_fkey"
             columns: ["professional_id"]
             isOneToOne: false
             referencedRelation: "professionals"
@@ -1796,6 +1959,8 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "barber" | "client" | "super_admin"
+      commission_payment_status: "PENDING" | "PAID"
+      commission_source_type: "APPOINTMENT" | "ORDER" | "INVOICE" | "OTHER"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1924,6 +2089,8 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "barber", "client", "super_admin"],
+      commission_payment_status: ["PENDING", "PAID"],
+      commission_source_type: ["APPOINTMENT", "ORDER", "INVOICE", "OTHER"],
     },
   },
 } as const
