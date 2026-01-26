@@ -117,22 +117,47 @@ export function BarbershopSettingsPage() {
   const handleLogoUpload = async (file: File) => {
     if (!barbershop?.id) return;
     
+    // Validation
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Formato inválido. Use PNG, JPEG ou WebP.");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Arquivo muito grande. Máximo 2MB.");
+      return;
+    }
+    
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${barbershop.id}/logo-${Date.now()}.${fileExt}`;
       
+      // Upload to storage (using correct bucket)
       const { error: uploadError } = await supabase.storage
-        .from('barbershop-assets')
+        .from('barbershop-branding')
         .upload(fileName, file, { upsert: true });
       
       if (uploadError) throw uploadError;
       
       const { data: { publicUrl } } = supabase.storage
-        .from('barbershop-assets')
+        .from('barbershop-branding')
         .getPublicUrl(fileName);
       
+      // Immediately persist to database
+      const { error: updateError } = await supabase
+        .from("barbershops")
+        .update({ 
+          logo_url: publicUrl,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", barbershop.id);
+      
+      if (updateError) throw updateError;
+      
       setFormData(prev => ({ ...prev, logo_url: publicUrl }));
-      toast.success("Logo enviado com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["barbershop"] });
+      queryClient.invalidateQueries({ queryKey: ["barbershop-settings"] });
+      toast.success("Logo salvo com sucesso!");
     } catch (error: any) {
       console.error("Erro ao enviar logo:", error);
       toast.error(error.message || "Erro ao enviar logo");
@@ -142,22 +167,47 @@ export function BarbershopSettingsPage() {
   const handleCoverUpload = async (file: File) => {
     if (!barbershop?.id) return;
     
+    // Validation
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Formato inválido. Use PNG, JPEG ou WebP.");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Arquivo muito grande. Máximo 2MB.");
+      return;
+    }
+    
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${barbershop.id}/cover-${Date.now()}.${fileExt}`;
       
+      // Upload to storage (using correct bucket)
       const { error: uploadError } = await supabase.storage
-        .from('barbershop-assets')
+        .from('barbershop-branding')
         .upload(fileName, file, { upsert: true });
       
       if (uploadError) throw uploadError;
       
       const { data: { publicUrl } } = supabase.storage
-        .from('barbershop-assets')
+        .from('barbershop-branding')
         .getPublicUrl(fileName);
       
+      // Immediately persist to database
+      const { error: updateError } = await supabase
+        .from("barbershops")
+        .update({ 
+          cover_url: publicUrl,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", barbershop.id);
+      
+      if (updateError) throw updateError;
+      
       setFormData(prev => ({ ...prev, cover_url: publicUrl }));
-      toast.success("Imagem de capa enviada com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["barbershop"] });
+      queryClient.invalidateQueries({ queryKey: ["barbershop-settings"] });
+      toast.success("Imagem de capa salva com sucesso!");
     } catch (error: any) {
       console.error("Erro ao enviar capa:", error);
       toast.error(error.message || "Erro ao enviar capa");
