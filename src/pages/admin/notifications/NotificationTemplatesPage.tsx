@@ -580,8 +580,8 @@ export function NotificationTemplatesPage() {
       title="Templates de Notificação"
       subtitle="Configure mensagens automáticas para email e WhatsApp"
       icon={FileText}
-      actionLabel={activeTab === "whatsapp" ? "Novo Template" : undefined}
-      onAction={activeTab === "whatsapp" ? handleNewTemplate : undefined}
+      actionLabel="Novo Template"
+      onAction={handleNewTemplate}
     >
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "email" | "whatsapp")}>
         <TabsList className="mb-6">
@@ -596,20 +596,36 @@ export function NotificationTemplatesPage() {
         </TabsList>
 
         <TabsContent value="email">
-          <Card>
-            <CardContent className="py-16 text-center">
-              <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-muted flex items-center justify-center">
-                <Mail className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <h3 className="text-xl font-semibold mb-3">Edição de Templates de Email Indisponível</h3>
-              <p className="text-muted-foreground max-w-md mx-auto mb-2">
-                Os templates de email são gerenciados automaticamente pelo sistema para garantir a melhor experiência de entrega e formatação.
-              </p>
-              <p className="text-sm text-muted-foreground/70">
-                As notificações por email continuam sendo enviadas normalmente com o layout padrão do ImperioApp.
-              </p>
-            </CardContent>
-          </Card>
+          {isLoading ? (
+            <div className="text-center py-8 text-muted-foreground">Carregando...</div>
+          ) : emailTemplates.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <Mail className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="font-semibold mb-2">Nenhum template de Email</h3>
+                <p className="text-muted-foreground mb-4">Crie templates para envios automáticos por email</p>
+                <Button onClick={handleNewTemplate}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Criar Template
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4">
+              {emailTemplates.map((template) => (
+                <TemplateCard
+                  key={template.id}
+                  template={template}
+                  onEdit={() => handleEditTemplate(template)}
+                  onDelete={() => deleteMutation.mutate(template.id)}
+                  onToggle={(active) => toggleActiveMutation.mutate({ id: template.id, is_active: active })}
+                  onPreview={() => handlePreview(template)}
+                  getTriggerLabel={getTriggerLabel}
+                  getTriggerIcon={getTriggerIcon}
+                />
+              ))}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="whatsapp">
