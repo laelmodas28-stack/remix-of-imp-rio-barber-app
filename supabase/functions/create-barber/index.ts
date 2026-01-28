@@ -78,6 +78,58 @@ serve(async (req) => {
       );
     }
 
+    // Check professional limit based on subscription plan
+    const { data: subscription } = await supabaseAdmin
+      .from('barbershop_subscriptions')
+      .select('plan_type')
+      .eq('barbershop_id', barbershop_id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const planType = subscription?.plan_type?.toLowerCase() || 'trial';
+    
+    // Get max professionals based on plan
+    const getMaxProfessionals = (plan: string): number | null => {
+      switch (plan) {
+        case 'essencial':
+        case 'basic':
+        case 'trial':
+          return 1;
+        case 'profissional':
+        case 'professional':
+          return 3;
+        case 'completo':
+        case 'enterprise':
+        case 'complete':
+          return null; // Unlimited
+        default:
+          return 1;
+      }
+    };
+
+    const maxAllowed = getMaxProfessionals(planType);
+    
+    if (maxAllowed !== null) {
+      // Count existing professionals
+      const { count: professionalCount } = await supabaseAdmin
+        .from('professionals')
+        .select('id', { count: 'exact', head: true })
+        .eq('barbershop_id', barbershop_id);
+
+      if (professionalCount !== null && professionalCount >= maxAllowed) {
+        const planDisplayName = planType === 'trial' ? 'Trial' : 
+                                planType === 'essencial' || planType === 'basic' ? 'Essencial' :
+                                planType === 'profissional' || planType === 'professional' ? 'Profissional' : planType;
+        return new Response(
+          JSON.stringify({ 
+            error: `Limite de profissionais atingido. O plano ${planDisplayName} permite apenas ${maxAllowed} profissional${maxAllowed > 1 ? 'is' : ''}. Faça upgrade para adicionar mais.` 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+    }
+
     console.log('Admin creating barber:', { admin: callingUser.email, barberEmail: email, barbershop_id });
 
     // Check if user already exists

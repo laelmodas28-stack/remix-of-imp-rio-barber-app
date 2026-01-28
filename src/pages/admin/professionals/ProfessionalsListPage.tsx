@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AdminPageScaffold } from "@/components/admin/shared/AdminPageScaffold";
-import { UserCircle, Star, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { UserCircle, Star, MoreVertical, Pencil, Trash2, Crown, AlertTriangle } from "lucide-react";
 import { useBarbershop } from "@/hooks/useBarbershop";
+import { useProfessionalLimit, getProfessionalLimitMessage } from "@/hooks/useProfessionalLimit";
 import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -36,6 +38,7 @@ interface Professional {
 
 export function ProfessionalsListPage() {
   const { barbershop } = useBarbershop();
+  const { currentCount, maxAllowed, canAddMore, planName, isLoading: isLoadingLimit } = useProfessionalLimit(barbershop?.id);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProfessional, setEditingProfessional] = useState<Professional | null>(null);
   const [deletingProfessional, setDeletingProfessional] = useState<Professional | null>(null);
@@ -62,6 +65,10 @@ export function ProfessionalsListPage() {
   };
 
   const handleNew = () => {
+    if (!canAddMore) {
+      toast.error(`Limite de profissionais atingido. O plano ${planName} permite apenas ${maxAllowed} profissional${maxAllowed && maxAllowed > 1 ? 'is' : ''}.`);
+      return;
+    }
     setEditingProfessional(null);
     setIsModalOpen(true);
   };
@@ -101,9 +108,27 @@ export function ProfessionalsListPage() {
         title="Equipe"
         subtitle="Profissionais cadastrados na barbearia"
         icon={UserCircle}
-        actionLabel="Novo Profissional"
-        onAction={handleNew}
+        actionLabel={canAddMore ? "Novo Profissional" : undefined}
+        onAction={canAddMore ? handleNew : undefined}
       >
+        {/* Plan limit info */}
+        <Alert className={!canAddMore ? "border-destructive bg-destructive/10 mb-6" : "border-primary/30 bg-primary/5 mb-6"}>
+          <div className="flex items-center gap-2">
+            {!canAddMore ? (
+              <AlertTriangle className="h-4 w-4 text-destructive" />
+            ) : (
+              <Crown className="h-4 w-4 text-primary" />
+            )}
+            <AlertDescription className={!canAddMore ? "text-destructive" : "text-foreground"}>
+              {getProfessionalLimitMessage(currentCount, maxAllowed, planName)}
+              {!canAddMore && (
+                <Button variant="link" asChild className="ml-2 p-0 h-auto text-primary">
+                  <a href="/planos">Fazer upgrade</a>
+                </Button>
+              )}
+            </AlertDescription>
+          </div>
+        </Alert>
         {isLoading ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((i) => (
