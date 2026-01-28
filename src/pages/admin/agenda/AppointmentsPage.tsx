@@ -104,6 +104,7 @@ export function AppointmentsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState<string>("all");
+  const [professionalFilter, setProfessionalFilter] = useState<string>("all");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   // For barbers, get their linked professional ID
@@ -125,9 +126,28 @@ export function AppointmentsPage() {
     enabled: !!user?.id && !!barbershop?.id && isBarber,
   });
 
+  // Fetch all professionals for the filter (admin only)
+  const { data: professionals = [] } = useQuery({
+    queryKey: ["barbershop-professionals", barbershop?.id],
+    queryFn: async () => {
+      if (!barbershop?.id) return [];
+      
+      const { data, error } = await supabase
+        .from("professionals")
+        .select("id, name, photo_url")
+        .eq("barbershop_id", barbershop.id)
+        .eq("is_active", true)
+        .order("name");
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!barbershop?.id && isAdmin,
+  });
+
   // Fetch bookings - filtered by professional for barbers
   const { data: bookings, isLoading } = useQuery({
-    queryKey: ["admin-bookings", barbershop?.id, statusFilter, dateFilter, linkedProfessional?.id, isAdmin],
+    queryKey: ["admin-bookings", barbershop?.id, statusFilter, dateFilter, professionalFilter, linkedProfessional?.id, isAdmin],
     queryFn: async () => {
       if (!barbershop?.id) return [];
       
@@ -159,6 +179,9 @@ export function AppointmentsPage() {
       // CRITICAL: For barbers, only show their own appointments
       if (isBarber && !isAdmin && linkedProfessional?.id) {
         query = query.eq("professional_id", linkedProfessional.id);
+      } else if (isAdmin && professionalFilter !== "all") {
+        // Apply professional filter for admins
+        query = query.eq("professional_id", professionalFilter);
       }
       
       // Apply status filter
@@ -450,6 +473,24 @@ export function AppointmentsPage() {
             <SelectItem value="cancelled">Cancelados</SelectItem>
           </SelectContent>
         </Select>
+
+        {/* Professional Filter - Admin only */}
+        {isAdmin && professionals.length > 0 && (
+          <Select value={professionalFilter} onValueChange={setProfessionalFilter}>
+            <SelectTrigger className="w-full sm:w-[200px]">
+              <Scissors className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Profissional" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os profissionais</SelectItem>
+              {professionals.map((prof) => (
+                <SelectItem key={prof.id} value={prof.id}>
+                  {prof.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {/* Data Table */}
