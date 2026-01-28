@@ -80,6 +80,14 @@ const DEFAULT_TEMPLATES = {
             </td>
           </tr>
           
+          <!-- Saudação com nome do cliente -->
+          <tr>
+            <td style="padding: 0 20px 20px;">
+              <p style="margin: 0; color: #333; font-size: 16px;">Olá, <strong>{{cliente_nome}}</strong>!</p>
+              <p style="margin: 10px 0 0; color: #666; font-size: 14px;">Seu agendamento foi confirmado com sucesso.</p>
+            </td>
+          </tr>
+          
           <!-- Card com informações -->
           <tr>
             <td style="padding: 0 20px;">
@@ -113,7 +121,6 @@ const DEFAULT_TEMPLATES = {
             <td align="center" style="padding: 30px 20px;">
               <p style="margin: 0 0 10px; color: #666; font-size: 13px;">Enviado por ImperioApp</p>
               <p style="margin: 0; color: #999; font-size: 11px;">{{barbearia_endereco}}</p>
-              <p style="margin: 5px 0 0; color: #999; font-size: 11px;">{{barbearia_telefone}}</p>
             </td>
           </tr>
         </table>
@@ -144,6 +151,13 @@ const DEFAULT_TEMPLATES = {
             </td>
           </tr>
           
+          <!-- Saudação com nome do cliente -->
+          <tr>
+            <td style="padding: 0 20px 20px;">
+              <p style="margin: 0; color: #333; font-size: 16px; text-align: center;">Olá, <strong>{{cliente_nome}}</strong>!</p>
+            </td>
+          </tr>
+          
           <!-- Card com lembrete -->
           <tr>
             <td style="padding: 0 20px;">
@@ -169,7 +183,6 @@ const DEFAULT_TEMPLATES = {
             <td align="center" style="padding: 30px 20px;">
               <p style="margin: 0 0 10px; color: #666; font-size: 13px;">Enviado por ImperioApp</p>
               <p style="margin: 0; color: #999; font-size: 11px;">{{barbearia_endereco}}</p>
-              <p style="margin: 5px 0 0; color: #999; font-size: 11px;">{{barbearia_telefone}}</p>
             </td>
           </tr>
         </table>
@@ -200,6 +213,13 @@ const DEFAULT_TEMPLATES = {
             </td>
           </tr>
           
+          <!-- Saudação com nome do cliente -->
+          <tr>
+            <td style="padding: 0 20px 20px;">
+              <p style="margin: 0; color: #333; font-size: 16px; text-align: center;">Olá, <strong>{{cliente_nome}}</strong>!</p>
+            </td>
+          </tr>
+          
           <!-- Card com cancelamento -->
           <tr>
             <td style="padding: 0 20px;">
@@ -208,7 +228,7 @@ const DEFAULT_TEMPLATES = {
                   <td style="padding: 30px; text-align: center;">
                     <h2 style="margin: 0 0 20px; color: #ffffff; font-size: 20px; font-weight: 600;">Agendamento Cancelado</h2>
                     <p style="margin: 0 0 10px; color: #ffffff; font-size: 15px;">
-                      Olá {{cliente_nome}}, seu agendamento foi cancelado.
+                      Seu agendamento foi cancelado.
                     </p>
                     <p style="margin: 0; color: #fecaca; font-size: 14px;">
                       {{servico_nome}} - {{data_agendamento}} às {{hora_agendamento}}
@@ -231,7 +251,6 @@ const DEFAULT_TEMPLATES = {
             <td align="center" style="padding: 20px;">
               <p style="margin: 0 0 10px; color: #666; font-size: 13px;">Enviado por ImperioApp</p>
               <p style="margin: 0; color: #999; font-size: 11px;">{{barbearia_endereco}}</p>
-              <p style="margin: 5px 0 0; color: #999; font-size: 11px;">{{barbearia_telefone}}</p>
             </td>
           </tr>
         </table>
