@@ -1,3 +1,5 @@
+import { supabase } from "@/integrations/supabase/client";
+
 export interface NotificationTemplate {
   id: string;
   barbershop_id: string;
@@ -26,17 +28,37 @@ export interface TemplateData {
 
 /**
  * Fetches an active notification template for a specific trigger and type
- * Note: notification_templates table doesn't exist yet, so this returns null
  */
 export async function getNotificationTemplate(
   barbershopId: string,
   triggerEvent: string,
   type: "email" | "whatsapp"
 ): Promise<NotificationTemplate | null> {
-  // notification_templates table doesn't exist in the schema
-  // Return null to use fallback templates
-  console.log(`No notification_templates table - using fallback for ${type}/${triggerEvent}`);
-  return null;
+  try {
+    const { data, error } = await supabase
+      .from("notification_templates")
+      .select("*")
+      .eq("barbershop_id", barbershopId)
+      .eq("trigger_event", triggerEvent)
+      .eq("type", type)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (error) {
+      console.error(`Error fetching ${type} template for ${triggerEvent}:`, error);
+      return null;
+    }
+
+    if (!data) {
+      console.log(`No active ${type} template found for ${triggerEvent}`);
+      return null;
+    }
+
+    return data as NotificationTemplate;
+  } catch (err) {
+    console.error(`Exception fetching ${type} template:`, err);
+    return null;
+  }
 }
 
 /**
