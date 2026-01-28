@@ -7,13 +7,109 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-// Force redeploy: 2026-01-21T15:30:final
 const N8N_WEBHOOK_URL = Deno.env.get("N8N_WEBHOOK_URL") || "";
 
 interface RequestBody {
   barbershopId: string;
   payload: Record<string, unknown>;
   isTest?: boolean;
+}
+
+// Helper function to replace placeholders in templates
+function replacePlaceholders(template: string, data: Record<string, unknown>): string {
+  return template
+    .replace(/\{\{cliente_nome\}\}/g, (data.client_name as string) || '')
+    .replace(/\{\{servico_nome\}\}/g, (data.service_name as string) || '')
+    .replace(/\{\{data_agendamento\}\}/g, (data.booking_date as string) || '')
+    .replace(/\{\{hora_agendamento\}\}/g, (data.booking_time as string) || '')
+    .replace(/\{\{profissional_nome\}\}/g, (data.professional_name as string) || '')
+    .replace(/\{\{servico_preco\}\}/g, (data.service_price as string) || '')
+    .replace(/\{\{barbearia_nome\}\}/g, (data.barbershop_name as string) || '')
+    .replace(/\{\{barbearia_endereco\}\}/g, (data.barbershop_address as string) || '')
+    .replace(/\{\{barbearia_logo_url\}\}/g, (data.barbershop_logo_url as string) || '');
+}
+
+// Generate default email HTML template
+function generateDefaultEmailHtml(data: Record<string, unknown>): string {
+  const clientName = (data.client_name as string) || 'Cliente';
+  const serviceName = (data.service_name as string) || '';
+  const bookingDate = (data.booking_date as string) || '';
+  const bookingTime = (data.booking_time as string) || '';
+  const professionalName = (data.professional_name as string) || '';
+  const servicePrice = (data.service_price as string) || '';
+  const barbershopName = (data.barbershop_name as string) || 'Barbearia';
+  const barbershopAddress = (data.barbershop_address as string) || '';
+  const barbershopLogoUrl = (data.barbershop_logo_url as string) || '';
+
+  return `
+  <!DOCTYPE html>
+  <html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  </head>
+  <body style="margin: 0; padding: 0; background-color: #f0f0f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f0f0f0; padding: 40px 20px;">
+      <tr>
+        <td align="center">
+          <table width="520" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); overflow: hidden;">
+            <!-- Header -->
+            <tr>
+              <td style="background-color: #1a1a2e; padding: 20px 32px; text-align: center;">
+                <h1 style="margin: 0; font-size: 18px; font-weight: 600; color: #ffffff;">${barbershopName} - Confirmação de Agendamento</h1>
+              </td>
+            </tr>
+            <!-- Greeting -->
+            <tr>
+              <td style="padding: 24px 32px 8px;">
+                <p style="margin: 0; font-size: 15px; color: #333;">Olá, <strong>${clientName}</strong>!</p>
+                <p style="margin: 8px 0 0; font-size: 14px; color: #666;">Seu agendamento foi confirmado com sucesso.</p>
+              </td>
+            </tr>
+            <!-- Service Card -->
+            <tr>
+              <td style="padding: 16px 32px 24px;">
+                <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f8f8; border-radius: 8px; border: 1px solid #e5e5e5;">
+                  <tr>
+                    <td style="padding: 16px;">
+                      <table width="100%" cellpadding="0" cellspacing="0">
+                        <tr>
+                          <!-- Logo Column -->
+                          <td style="vertical-align: top; width: 90px; padding-right: 16px; text-align: center;">
+                            ${barbershopLogoUrl ? `
+                            <div style="width: 70px; height: 70px; background-color: #1a1a2e; border-radius: 50%; overflow: hidden; margin: 0 auto;">
+                              <img src="${barbershopLogoUrl}" alt="${barbershopName}" style="width: 100%; height: 100%; object-fit: contain;" />
+                            </div>
+                            ` : `<div style="width: 70px; height: 70px; background-color: #1a1a2e; border-radius: 50%; margin: 0 auto;"></div>`}
+                            <p style="margin: 8px 0 0; font-size: 10px; font-weight: 600; color: #1a1a2e; text-transform: uppercase;">${barbershopName}</p>
+                          </td>
+                          <!-- Details Column -->
+                          <td style="vertical-align: top;">
+                            <p style="margin: 0 0 6px; font-size: 14px; color: #333;"><strong>Serviço:</strong> ${serviceName}</p>
+                            <p style="margin: 0 0 6px; font-size: 14px; color: #333;"><strong>Data:</strong> ${bookingDate} ${bookingTime}</p>
+                            <p style="margin: 0 0 6px; font-size: 14px; color: #333;"><strong>Profissional:</strong> ${professionalName}</p>
+                            <p style="margin: 0; font-size: 14px; color: #333;"><strong>Valor:</strong> ${servicePrice}</p>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <!-- Footer -->
+            <tr>
+              <td style="padding: 16px 32px 24px; text-align: center; border-top: 1px solid #e5e5e5;">
+                <p style="margin: 0 0 4px; font-size: 12px; color: #888;">Enviado por ImperioApp</p>
+                ${barbershopAddress ? `<p style="margin: 0; font-size: 11px; color: #aaa;">${barbershopAddress}</p>` : ''}
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+  </html>`;
 }
 
 serve(async (req: Request) => {
@@ -56,18 +152,60 @@ serve(async (req: Request) => {
 
     console.log(`Sending email notification${isTest ? " (TEST)" : ""} via n8n webhook to: ${recipientEmail}`);
 
-    // Send to n8n webhook
+    // Determine the trigger event from payload or default to booking_confirmation
+    const triggerEvent = (payload?.trigger_event as string) || "booking_confirmation";
+
+    // Fetch email template from notification_templates table
+    const { data: emailTemplate, error: templateError } = await supabase
+      .from("notification_templates")
+      .select("content, subject")
+      .eq("barbershop_id", barbershopId)
+      .eq("trigger_event", triggerEvent)
+      .eq("type", "email")
+      .eq("is_active", true)
+      .limit(1)
+      .maybeSingle();
+
+    if (templateError) {
+      console.error("Error fetching email template:", templateError);
+    }
+
+    let emailHtml: string;
+    let emailSubject: string;
+
+    if (emailTemplate?.content) {
+      // Use dynamic template from database
+      emailHtml = replacePlaceholders(emailTemplate.content, payload);
+      emailSubject = replacePlaceholders(
+        emailTemplate.subject || `${payload.barbershop_name || 'Barbearia'} - Confirmação de Agendamento`,
+        payload
+      );
+      console.log("Using dynamic email template from database");
+    } else {
+      // Fallback to default template
+      emailHtml = generateDefaultEmailHtml(payload);
+      emailSubject = `${payload.barbershop_name || 'Barbearia'} - Confirmação de Agendamento`;
+      console.log("No custom email template found, using default");
+    }
+
+    // Send to n8n webhook with the HTML template included
+    const webhookPayload = {
+      ...payload,
+      barbershopId,
+      email_html: emailHtml,
+      email_subject: emailSubject,
+      isTest: isTest || false,
+      timestamp: new Date().toISOString(),
+    };
+
+    console.log("Sending email with subject:", emailSubject);
+
     const webhookRes = await fetch(N8N_WEBHOOK_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        ...payload,
-        barbershopId,
-        isTest: isTest || false,
-        timestamp: new Date().toISOString(),
-      }),
+      body: JSON.stringify(webhookPayload),
     });
 
     // Capture response text and try to parse as JSON
@@ -93,7 +231,7 @@ serve(async (req: Request) => {
           recipient_contact: recipientEmail || "unknown",
           status: "failed",
           content: JSON.stringify({
-            subject: messageContent,
+            subject: emailSubject,
             webhook_status: webhookRes.status,
             webhook_response: webhookData,
           }),
@@ -110,7 +248,6 @@ serve(async (req: Request) => {
     }
 
     // Determine delivery status from webhook response
-    // n8n typically returns { message: "Workflow was started" } or similar
     const deliveryStatus = webhookData?.success === true ? "delivered" : "sent";
     const workflowMessage = (webhookData?.message as string) || "Workflow started";
 
@@ -122,7 +259,7 @@ serve(async (req: Request) => {
         recipient_contact: recipientEmail || "unknown",
         status: deliveryStatus,
         content: JSON.stringify({
-          subject: messageContent,
+          subject: emailSubject,
           client_name: payload?.client_name,
           service_name: payload?.service_name,
           booking_date: payload?.booking_date,
