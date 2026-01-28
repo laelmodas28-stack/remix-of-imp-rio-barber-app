@@ -17,10 +17,12 @@ export interface PlatformPlan {
   updated_at: string;
 }
 
-export const usePlatformPlans = () => {
+export type BillingPeriod = 'MONTHLY' | 'QUARTERLY' | 'YEARLY';
+
+export const usePlatformPlans = (billingPeriod: BillingPeriod = 'MONTHLY') => {
   const queryClient = useQueryClient();
 
-  const { data: plans, isLoading, error } = useQuery({
+  const { data: allPlans, isLoading, error } = useQuery({
     queryKey: ["platform-plans"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -37,6 +39,18 @@ export const usePlatformPlans = () => {
       }));
     },
   });
+
+  // Filter plans by billing period
+  const plans = allPlans?.filter(plan => plan.billing_cycle === billingPeriod);
+
+  // Group plans by name for easy lookup across billing periods
+  const plansByName = allPlans?.reduce((acc, plan) => {
+    if (!acc[plan.name]) {
+      acc[plan.name] = {};
+    }
+    acc[plan.name][plan.billing_cycle] = plan;
+    return acc;
+  }, {} as Record<string, Record<string, PlatformPlan>>);
 
   const createCheckout = useMutation({
     mutationFn: async ({ planId, barbershopId }: { planId: string; barbershopId: string }) => {
@@ -75,6 +89,8 @@ export const usePlatformPlans = () => {
 
   return {
     plans,
+    allPlans,
+    plansByName,
     isLoading,
     error,
     createCheckout,
