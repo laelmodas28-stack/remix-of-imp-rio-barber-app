@@ -9,6 +9,120 @@ const corsHeaders = {
 const N8N_WEBHOOK_URL = Deno.env.get("N8N_WEBHOOK_URL") || "";
 const N8N_WHATSAPP_WEBHOOK_URL = Deno.env.get("N8N_WHATSAPP_WEBHOOK_URL") || "";
 
+// Format date to Brazilian format DD/MM/YYYY
+function formatDateBR(dateStr: string): string {
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+    return dateStr;
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const [year, month, day] = dateStr.split('-');
+    return `${day}/${month}/${year}`;
+  }
+  return dateStr;
+}
+
+// Generate corporate HTML email template for reminders
+function generateReminderEmailHTML(data: {
+  barbershopName: string;
+  barbershopAddress?: string;
+  barbershopLogoUrl?: string;
+  clientName: string;
+  serviceName: string;
+  bookingDate: string;
+  bookingTime: string;
+  professionalName: string;
+  price?: number;
+}): string {
+  const formattedDate = formatDateBR(data.bookingDate);
+  const formattedTime = data.bookingTime.substring(0, 5);
+  const priceFormatted = data.price ? `R$ ${data.price.toFixed(2).replace('.', ',')}` : '';
+
+  return `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${data.barbershopName} - Lembrete de Agendamento</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" style="width: 100%; max-width: 500px; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 24px 32px 16px; text-align: center; border-bottom: 1px solid #e5e5e5;">
+              <h1 style="margin: 0; font-size: 18px; font-weight: 600; color: #1a1a2e;">
+                ${data.barbershopName} - Lembrete de Agendamento
+              </h1>
+            </td>
+          </tr>
+          <!-- Content -->
+          <tr>
+            <td style="padding: 24px 32px;">
+              <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="vertical-align: top; width: 80px; padding-right: 16px;">
+                    ${data.barbershopLogoUrl ? `
+                    <div style="width: 72px; height: 72px; background-color: #1a1a2e; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                      <img src="${data.barbershopLogoUrl}" alt="${data.barbershopName}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                    </div>
+                    ` : `
+                    <div style="width: 72px; height: 72px; background-color: #1a1a2e; border-radius: 8px;"></div>
+                    `}
+                    <p style="margin: 8px 0 0; font-size: 11px; color: #666; text-align: center;">${data.barbershopName}</p>
+                  </td>
+                  <td style="vertical-align: top;">
+                    <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                      <tr>
+                        <td style="padding: 4px 0;">
+                          <span style="font-size: 14px; color: #333;"><strong>Cliente:</strong> ${data.clientName}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 4px 0;">
+                          <span style="font-size: 14px; color: #333;"><strong>Servico:</strong> ${data.serviceName}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 4px 0;">
+                          <span style="font-size: 14px; color: #333;"><strong>Data:</strong> ${formattedDate} ${formattedTime}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 4px 0;">
+                          <span style="font-size: 14px; color: #333;"><strong>Profissional:</strong> ${data.professionalName}</span>
+                        </td>
+                      </tr>
+                      ${priceFormatted ? `
+                      <tr>
+                        <td style="padding: 4px 0;">
+                          <span style="font-size: 14px; color: #333;"><strong>Valor:</strong> ${priceFormatted}</span>
+                        </td>
+                      </tr>
+                      ` : ''}
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 16px 32px 24px; text-align: center; border-top: 1px solid #e5e5e5;">
+              <p style="margin: 0 0 4px; font-size: 12px; color: #888;">Enviado por ImperioApp</p>
+              ${data.barbershopAddress ? `<p style="margin: 0; font-size: 11px; color: #aaa;">${data.barbershopAddress}</p>` : ''}
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -24,7 +138,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Fetch all barbershop settings with reminders enabled
     const { data: allSettings, error: settingsError } = await supabase
       .from("barbershop_settings")
-      .select("*, barbershop:barbershops(id, name, slug)")
+      .select("*, barbershop:barbershops(id, name, slug, logo_url, address)")
       .eq("send_booking_reminders", true);
 
     if (settingsError) throw settingsError;
@@ -38,6 +152,8 @@ const handler = async (req: Request): Promise<Response> => {
       const reminderHours = settings.reminder_hours_before || 1;
       const barbershopId = settings.barbershop_id;
       const barbershopName = settings.barbershop?.name || "Barbearia";
+      const barbershopLogoUrl = settings.barbershop?.logo_url || null;
+      const barbershopAddress = settings.barbershop?.address || null;
       const instanceName = settings.barbershop?.slug || `barbershop-${barbershopId.substring(0, 8)}`;
       
       // Calculate the target time window for reminders
@@ -96,18 +212,29 @@ const handler = async (req: Request): Promise<Response> => {
           continue;
         }
 
-        // Fetch client profile
+        // Fetch client profile - try both by id and user_id
         let clientData = { name: "Cliente", email: null as string | null, phone: null as string | null };
         if (booking.client_id) {
-          const { data: profile } = await supabase
+          // First try by id (for existing users)
+          let { data: profile } = await supabase
             .from("profiles")
-            .select("name, email, phone")
-            .eq("user_id", booking.client_id)
+            .select("full_name, name, email, phone")
+            .eq("id", booking.client_id)
             .single();
+          
+          // If not found, try by user_id
+          if (!profile) {
+            const { data: profileByUserId } = await supabase
+              .from("profiles")
+              .select("full_name, name, email, phone")
+              .eq("user_id", booking.client_id)
+              .single();
+            profile = profileByUserId;
+          }
           
           if (profile) {
             clientData = {
-              name: profile.name || "Cliente",
+              name: profile.full_name || profile.name || "Cliente",
               email: profile.email,
               phone: profile.phone,
             };
@@ -116,6 +243,19 @@ const handler = async (req: Request): Promise<Response> => {
 
         const serviceName = (booking.service as any)?.name || "Serviço";
         const professionalName = (booking.professional as any)?.name || "Profissional";
+
+        // Generate email HTML with client name
+        const emailHtml = generateReminderEmailHTML({
+          barbershopName,
+          barbershopAddress: barbershopAddress || undefined,
+          barbershopLogoUrl: barbershopLogoUrl || undefined,
+          clientName: clientData.name,
+          serviceName,
+          bookingDate: booking.booking_date,
+          bookingTime: booking.booking_time,
+          professionalName,
+          price: booking.price,
+        });
 
         // Send Email reminder via webhook
         if (clientData.email && N8N_WEBHOOK_URL) {
@@ -131,7 +271,8 @@ const handler = async (req: Request): Promise<Response> => {
               booking_time: booking.booking_time,
               barbershop_name: barbershopName,
               price: booking.price,
-              email_subject: `Lembrete: Seu agendamento é hoje às ${booking.booking_time.substring(0, 5)}`,
+              email_subject: `${barbershopName} - Lembrete de Agendamento`,
+              email_html: emailHtml,
               timestamp: new Date().toISOString(),
             };
 
@@ -183,6 +324,10 @@ const handler = async (req: Request): Promise<Response> => {
               phone = `55${phone}`;
             }
 
+            const formattedDate = formatDateBR(booking.booking_date);
+            const formattedTime = booking.booking_time.substring(0, 5);
+            const priceFormatted = booking.price ? `R$ ${booking.price.toFixed(2).replace('.', ',')}` : '';
+
             const whatsappPayload = {
               notification_type: "reminder",
               booking_id: booking.id,
@@ -196,13 +341,14 @@ const handler = async (req: Request): Promise<Response> => {
               barbershop_name: barbershopName,
               price: booking.price,
               message: `*${barbershopName} - Lembrete de Agendamento*\n\n` +
-                `Ola ${clientData.name}\n\n` +
-                `Este e um lembrete do seu agendamento:\n\n` +
+                `Cliente: ${clientData.name}\n` +
                 `Servico: ${serviceName}\n` +
+                `Data: ${formattedDate}\n` +
+                `Horario: ${formattedTime}\n` +
                 `Profissional: ${professionalName}\n` +
-                `Data: ${booking.booking_date}\n` +
-                `Horario: ${booking.booking_time.substring(0, 5)}\n\n` +
-                `Enviado por ImperioApp`,
+                (priceFormatted ? `Valor: ${priceFormatted}\n` : '') +
+                `\nEnviado por ImperioApp` +
+                (barbershopAddress ? `\n${barbershopAddress}` : ''),
               timestamp: new Date().toISOString(),
             };
 
