@@ -46,6 +46,7 @@ function generateCorporateEmailHTML(data: {
   barbershopAddress?: string;
   barbershopLogoUrl?: string;
   title: string;
+  clientName?: string;
   serviceName: string;
   bookingDate: string;
   bookingTime: string;
@@ -95,6 +96,13 @@ function generateCorporateEmailHTML(data: {
                   </td>
                   <td style="vertical-align: top;">
                     <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                      ${data.clientName ? `
+                      <tr>
+                        <td style="padding: 4px 0;">
+                          <span style="font-size: 14px; color: #333;"><strong>Cliente:</strong> ${data.clientName}</span>
+                        </td>
+                      </tr>
+                      ` : ''}
                       <tr>
                         <td style="padding: 4px 0;">
                           <span style="font-size: 14px; color: #333;"><strong>Servico:</strong> ${data.serviceName}</span>
@@ -258,6 +266,7 @@ export async function sendBookingConfirmationViaWebhook(
       barbershopAddress: data.barbershopAddress,
       barbershopLogoUrl: data.barbershopLogoUrl,
       title: "Confirmacao de Agendamento",
+      clientName: data.clientName,
       serviceName: data.serviceName,
       bookingDate: data.bookingDate,
       bookingTime: data.bookingTime,
@@ -345,6 +354,7 @@ export async function sendBookingReminderViaWebhook(
       barbershopAddress: data.barbershopAddress,
       barbershopLogoUrl: data.barbershopLogoUrl,
       title: "Lembrete de Agendamento",
+      clientName: data.clientName,
       serviceName: data.serviceName,
       bookingDate: data.bookingDate,
       bookingTime: data.bookingTime,
