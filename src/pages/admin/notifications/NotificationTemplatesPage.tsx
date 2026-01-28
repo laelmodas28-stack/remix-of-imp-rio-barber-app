@@ -151,36 +151,58 @@ const DEFAULT_TEMPLATES = {
             </td>
           </tr>
           
-          <!-- Saudação com nome do cliente -->
+          <!-- Título -->
           <tr>
-            <td style="padding: 0 20px 20px;">
-              <p style="margin: 0; color: #333; font-size: 16px; text-align: center;">Olá, <strong>{{cliente_nome}}</strong>!</p>
+            <td align="center" style="padding: 0 20px 20px;">
+              <h1 style="margin: 0; color: #1a1a2e; font-size: 22px; font-weight: 600;">{{barbearia_nome}} - Lembrete de Agendamento</h1>
             </td>
           </tr>
           
-          <!-- Card com lembrete -->
+          <!-- Saudação com nome do cliente -->
+          <tr>
+            <td style="padding: 0 20px 20px;">
+              <p style="margin: 0; color: #333; font-size: 16px;">Olá, <strong>{{cliente_nome}}</strong>!</p>
+              <p style="margin: 10px 0 0; color: #666; font-size: 14px;">Este é um lembrete do seu agendamento.</p>
+            </td>
+          </tr>
+          
+          <!-- Card com informações -->
           <tr>
             <td style="padding: 0 20px;">
               <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #1a1a2e; border-radius: 8px; overflow: hidden;">
                 <tr>
-                  <td style="padding: 30px; text-align: center;">
-                    <h2 style="margin: 0 0 20px; color: #ffffff; font-size: 20px; font-weight: 600;">Lembrete de Agendamento</h2>
-                    <p style="margin: 0 0 15px; color: #ffffff; font-size: 15px; line-height: 1.6;">
-                      Você tem <strong>{{servico_nome}}</strong> em <strong>{{data_agendamento}} {{hora_agendamento}}</strong><br/>
-                      com {{profissional_nome}} no(a) <strong>{{barbearia_nome}}</strong>.
-                    </p>
-                    <p style="margin: 0; color: #cccccc; font-size: 13px; line-height: 1.5;">
-                      Caso não puder comparecer, cancele seu horário com antecedência pelo Aplicativo ou entre em contato com o estabelecimento.
-                    </p>
+                  <td style="padding: 25px;">
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <!-- Logo da barbearia -->
+                        <td width="100" valign="top" style="padding-right: 20px;">
+                          <img src="{{barbearia_logo_url}}" alt="{{barbearia_nome}}" style="width: 80px; height: 80px; border-radius: 8px; object-fit: cover; background-color: #333;" />
+                          <p style="margin: 8px 0 0; color: #ffffff; font-size: 12px; text-align: center;">{{barbearia_nome}}</p>
+                        </td>
+                        <!-- Informações do agendamento -->
+                        <td valign="top" style="color: #ffffff;">
+                          <p style="margin: 0 0 10px; font-size: 14px;"><strong>Serviço:</strong> {{servico_nome}}</p>
+                          <p style="margin: 0 0 10px; font-size: 14px;"><strong>Data:</strong> {{data_agendamento}} {{hora_agendamento}}</p>
+                          <p style="margin: 0; font-size: 14px;"><strong>Profissional:</strong> {{profissional_nome}}</p>
+                        </td>
+                      </tr>
+                    </table>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
           
+          <!-- Aviso -->
+          <tr>
+            <td align="center" style="padding: 20px;">
+              <p style="margin: 0; color: #666; font-size: 13px;">Caso não puder comparecer, cancele seu horário com antecedência.</p>
+            </td>
+          </tr>
+          
           <!-- Footer -->
           <tr>
-            <td align="center" style="padding: 30px 20px;">
+            <td align="center" style="padding: 20px;">
               <p style="margin: 0 0 10px; color: #666; font-size: 13px;">Enviado por ImperioApp</p>
               <p style="margin: 0; color: #999; font-size: 11px;">{{barbearia_endereco}}</p>
             </td>
@@ -213,26 +235,42 @@ const DEFAULT_TEMPLATES = {
             </td>
           </tr>
           
-          <!-- Saudação com nome do cliente -->
+          <!-- Título -->
           <tr>
-            <td style="padding: 0 20px 20px;">
-              <p style="margin: 0; color: #333; font-size: 16px; text-align: center;">Olá, <strong>{{cliente_nome}}</strong>!</p>
+            <td align="center" style="padding: 0 20px 20px;">
+              <h1 style="margin: 0; color: #1a1a2e; font-size: 22px; font-weight: 600;">{{barbearia_nome}} - Agendamento Cancelado</h1>
             </td>
           </tr>
           
-          <!-- Card com cancelamento -->
+          <!-- Saudação com nome do cliente -->
+          <tr>
+            <td style="padding: 0 20px 20px;">
+              <p style="margin: 0; color: #333; font-size: 16px;">Olá, <strong>{{cliente_nome}}</strong>!</p>
+              <p style="margin: 10px 0 0; color: #666; font-size: 14px;">Informamos que seu agendamento foi cancelado.</p>
+            </td>
+          </tr>
+          
+          <!-- Card com informações -->
           <tr>
             <td style="padding: 0 20px;">
               <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #dc2626; border-radius: 8px; overflow: hidden;">
                 <tr>
-                  <td style="padding: 30px; text-align: center;">
-                    <h2 style="margin: 0 0 20px; color: #ffffff; font-size: 20px; font-weight: 600;">Agendamento Cancelado</h2>
-                    <p style="margin: 0 0 10px; color: #ffffff; font-size: 15px;">
-                      Seu agendamento foi cancelado.
-                    </p>
-                    <p style="margin: 0; color: #fecaca; font-size: 14px;">
-                      {{servico_nome}} - {{data_agendamento}} às {{hora_agendamento}}
-                    </p>
+                  <td style="padding: 25px;">
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <!-- Logo da barbearia -->
+                        <td width="100" valign="top" style="padding-right: 20px;">
+                          <img src="{{barbearia_logo_url}}" alt="{{barbearia_nome}}" style="width: 80px; height: 80px; border-radius: 8px; object-fit: cover; background-color: #991b1b;" />
+                          <p style="margin: 8px 0 0; color: #ffffff; font-size: 12px; text-align: center;">{{barbearia_nome}}</p>
+                        </td>
+                        <!-- Informações do agendamento -->
+                        <td valign="top" style="color: #ffffff;">
+                          <p style="margin: 0 0 10px; font-size: 14px;"><strong>Serviço:</strong> {{servico_nome}}</p>
+                          <p style="margin: 0 0 10px; font-size: 14px;"><strong>Data:</strong> {{data_agendamento}} {{hora_agendamento}}</p>
+                          <p style="margin: 0; font-size: 14px;"><strong>Profissional:</strong> {{profissional_nome}}</p>
+                        </td>
+                      </tr>
+                    </table>
                   </td>
                 </tr>
               </table>
