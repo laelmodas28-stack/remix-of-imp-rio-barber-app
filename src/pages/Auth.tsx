@@ -57,6 +57,17 @@ const Auth = () => {
     enabled: !!originSlug,
   });
 
+  // Function to check if user is super_admin
+  const checkSuperAdmin = async (userId: string): Promise<boolean> => {
+    const { data } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "super_admin")
+      .maybeSingle();
+    return !!data;
+  };
+
   // Function to find user's barbershops
   const findUserBarbershops = async (userId: string): Promise<BarbershopOption[]> => {
     const barbershops: BarbershopOption[] = [];
@@ -127,6 +138,14 @@ const Auth = () => {
       // If we have an origin slug, use it directly
       if (originSlug) {
         navigate(`/b/${originSlug}`, { replace: true });
+        return;
+      }
+
+      // Check if user is super_admin first
+      const isSuperAdmin = await checkSuperAdmin(userId);
+      if (isSuperAdmin) {
+        toast.success("Bem-vindo, Super Admin!");
+        navigate("/superadmin", { replace: true });
         return;
       }
 
