@@ -152,6 +152,27 @@ serve(async (req: Request) => {
 
     console.log(`Sending email notification${isTest ? " (TEST)" : ""} via n8n webhook to: ${recipientEmail}`);
 
+    // Fetch barbershop data to get logo_url and other details
+    const { data: barbershop, error: barbershopError } = await supabase
+      .from("barbershops")
+      .select("name, logo_url, address")
+      .eq("id", barbershopId)
+      .maybeSingle();
+
+    if (barbershopError) {
+      console.error("Error fetching barbershop:", barbershopError);
+    }
+
+    // Merge barbershop data into payload for template replacement
+    const enrichedPayload = {
+      ...payload,
+      barbershop_name: payload.barbershop_name || barbershop?.name || 'Barbearia',
+      barbershop_logo_url: payload.barbershop_logo_url || barbershop?.logo_url || '',
+      barbershop_address: payload.barbershop_address || barbershop?.address || '',
+    };
+
+    console.log("Barbershop logo URL:", enrichedPayload.barbershop_logo_url);
+
     // Determine the trigger event from payload or default to booking_confirmation
     const triggerEvent = (payload?.trigger_event as string) || "booking_confirmation";
 
@@ -175,22 +196,22 @@ serve(async (req: Request) => {
 
     if (emailTemplate?.content) {
       // Use dynamic template from database
-      emailHtml = replacePlaceholders(emailTemplate.content, payload);
+      emailHtml = replacePlaceholders(emailTemplate.content, enrichedPayload);
       emailSubject = replacePlaceholders(
-        emailTemplate.subject || `${payload.barbershop_name || 'Barbearia'} - Confirmação de Agendamento`,
-        payload
+        emailTemplate.subject || `${enrichedPayload.barbershop_name} - Confirmação de Agendamento`,
+        enrichedPayload
       );
       console.log("Using dynamic email template from database");
     } else {
       // Fallback to default template
-      emailHtml = generateDefaultEmailHtml(payload);
-      emailSubject = `${payload.barbershop_name || 'Barbearia'} - Confirmação de Agendamento`;
+      emailHtml = generateDefaultEmailHtml(enrichedPayload);
+      emailSubject = `${enrichedPayload.barbershop_name} - Confirmação de Agendamento`;
       console.log("No custom email template found, using default");
     }
 
     // Send to n8n webhook with the HTML template included
     const webhookPayload = {
-      ...payload,
+      ...enrichedPayload,
       barbershopId,
       email_html: emailHtml,
       email_subject: emailSubject,
