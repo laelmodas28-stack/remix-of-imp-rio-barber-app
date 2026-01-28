@@ -498,6 +498,29 @@ Enviado por ImperioApp`,
       console.log('Default notification templates created for barbershop:', barbershopId);
     }
 
+    // 7. Create trial subscription (7 days)
+    const trialStartedAt = new Date();
+    const trialEndsAt = new Date();
+    trialEndsAt.setDate(trialEndsAt.getDate() + 7); // Exactly 7 days
+
+    const { error: subscriptionError } = await supabaseAdmin
+      .from('barbershop_subscriptions')
+      .insert({
+        barbershop_id: barbershopId,
+        plan_type: 'trial',
+        status: 'trial',
+        trial_started_at: trialStartedAt.toISOString(),
+        trial_ends_at: trialEndsAt.toISOString(),
+        created_by: userId,
+        notes: 'Período de teste de 7 dias criado automaticamente no cadastro',
+      });
+
+    if (subscriptionError) {
+      console.error('Error creating trial subscription:', subscriptionError);
+    } else {
+      console.log('Trial subscription created for barbershop:', barbershopId, 'expires:', trialEndsAt.toISOString());
+    }
+
     // 7. Mark registration code as used (only if code was provided)
     if (code) {
       const { error: codeUpdateError } = await supabaseAdmin
