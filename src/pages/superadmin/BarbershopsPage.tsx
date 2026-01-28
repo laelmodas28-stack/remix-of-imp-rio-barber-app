@@ -57,7 +57,10 @@ interface Barbershop {
     status: string;
     trial_ends_at: string | null;
     subscription_ends_at: string | null;
-  };
+    payment_value: number | null;
+    paid_at: string | null;
+    asaas_payment_link: string | null;
+  } | undefined;
 }
 
 export function BarbershopsPage() {
@@ -87,7 +90,7 @@ export function BarbershopsPage() {
       // Get subscriptions for all barbershops
       const { data: subs, error: subsError } = await supabase
         .from("barbershop_subscriptions")
-        .select("id, barbershop_id, plan_type, status, trial_ends_at, subscription_ends_at");
+        .select("id, barbershop_id, plan_type, status, trial_ends_at, subscription_ends_at, payment_value, paid_at, asaas_payment_link");
 
       if (subsError) throw subsError;
 
@@ -239,7 +242,23 @@ export function BarbershopsPage() {
       return <Badge variant="outline">Sem assinatura</Badge>;
     }
 
-    const { plan_type, status, trial_ends_at } = barbershop.subscription;
+    const { plan_type, status, trial_ends_at, payment_value, paid_at } = barbershop.subscription;
+
+    if (status === "pending_payment") {
+      return (
+        <div className="flex flex-col gap-1">
+          <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-600 flex items-center gap-1 w-fit">
+            <Clock className="w-3 h-3" />
+            Aguardando Pagamento
+          </Badge>
+          {payment_value && (
+            <span className="text-xs text-muted-foreground">
+              {plan_type} - R$ {payment_value.toFixed(2)}
+            </span>
+          )}
+        </div>
+      );
+    }
 
     if (status === "suspended") {
       return <Badge variant="destructive">Suspenso</Badge>;
@@ -259,9 +278,17 @@ export function BarbershopsPage() {
     }
 
     return (
-      <Badge variant="default" className="bg-green-600">
-        {plan_type}
-      </Badge>
+      <div className="flex flex-col gap-1">
+        <Badge variant="default" className="bg-green-600 w-fit capitalize">
+          {plan_type}
+        </Badge>
+        {paid_at && (
+          <span className="text-xs text-muted-foreground flex items-center gap-1">
+            <CheckCircle className="w-3 h-3 text-green-600" />
+            Pago
+          </span>
+        )}
+      </div>
     );
   };
 
