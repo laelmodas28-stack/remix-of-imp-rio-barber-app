@@ -40,7 +40,7 @@ const BarbershopLayout = () => {
   }, [slug, queryClient]);
 
   // Query para buscar barbearia por slug
-  const { data: barbershop, isLoading, error } = useQuery({
+  const { data: barbershop, isLoading, error, isError } = useQuery({
     queryKey: ["barbershop-exists", slug],
     queryFn: async () => {
       if (!slug) return null;
@@ -55,9 +55,11 @@ const BarbershopLayout = () => {
       return data;
     },
     enabled: !!slug,
-    staleTime: 0,
-    gcTime: 0,
-    refetchOnMount: "always",
+    staleTime: 5 * 60 * 1000, // 5 minutes - prevent excessive refetching on refresh
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnMount: true,
+    retry: 3, // Retry 3 times on failure
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
 
   if (isLoading) {
