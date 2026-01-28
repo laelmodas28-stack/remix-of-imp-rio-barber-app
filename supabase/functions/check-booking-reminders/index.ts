@@ -26,8 +26,22 @@ function formatPriceBR(price: number): string {
   return `R$ ${price.toFixed(2).replace('.', ',')}`;
 }
 
-// Generate corporate HTML email template for reminders
-function generateReminderEmailHTML(data: {
+// Helper function to replace placeholders in templates
+function replacePlaceholders(template: string, data: Record<string, string | undefined>): string {
+  return template
+    .replace(/\{\{cliente_nome\}\}/g, data.client_name || '')
+    .replace(/\{\{servico_nome\}\}/g, data.service_name || '')
+    .replace(/\{\{data_agendamento\}\}/g, data.booking_date || '')
+    .replace(/\{\{hora_agendamento\}\}/g, data.booking_time || '')
+    .replace(/\{\{profissional_nome\}\}/g, data.professional_name || '')
+    .replace(/\{\{servico_preco\}\}/g, data.service_price || '')
+    .replace(/\{\{barbearia_nome\}\}/g, data.barbershop_name || '')
+    .replace(/\{\{barbearia_endereco\}\}/g, data.barbershop_address || '')
+    .replace(/\{\{barbearia_logo_url\}\}/g, data.barbershop_logo_url || '');
+}
+
+// Generate default HTML email template for reminders (fallback)
+function generateDefaultReminderEmailHTML(data: {
   barbershopName: string;
   barbershopAddress?: string;
   barbershopLogoUrl?: string;
@@ -47,51 +61,48 @@ function generateReminderEmailHTML(data: {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${data.barbershopName} - Lembrete de Agendamento</title>
 </head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
-  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+<body style="margin: 0; padding: 0; background-color: #f0f0f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f0f0f0; padding: 40px 20px;">
     <tr>
-      <td align="center" style="padding: 40px 20px;">
-        <table role="presentation" style="width: 100%; max-width: 500px; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);">
+      <td align="center">
+        <table width="520" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); overflow: hidden;">
           <!-- Header -->
           <tr>
-            <td style="padding: 30px 32px 20px; text-align: center;">
-              <h1 style="margin: 0; font-size: 20px; font-weight: 600; color: #1a1a2e;">
-                ${data.barbershopName} - Lembrete de Agendamento
-              </h1>
+            <td style="background-color: #1a1a2e; padding: 20px 32px; text-align: center;">
+              <h1 style="margin: 0; font-size: 18px; font-weight: 600; color: #ffffff;">${data.barbershopName} - Lembrete de Agendamento</h1>
             </td>
           </tr>
           <!-- Greeting -->
           <tr>
-            <td style="padding: 0 32px 16px;">
+            <td style="padding: 24px 32px 8px;">
               <p style="margin: 0; font-size: 15px; color: #333;">Olá, <strong>${data.clientName}</strong>!</p>
               <p style="margin: 8px 0 0; font-size: 14px; color: #666;">Este é um lembrete do seu agendamento.</p>
             </td>
           </tr>
-          <!-- Content Card -->
+          <!-- Service Card -->
           <tr>
-            <td style="padding: 0 32px 24px;">
-              <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #1a1a2e; border-radius: 8px;">
+            <td style="padding: 16px 32px 24px;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f8f8; border-radius: 8px; border: 1px solid #e5e5e5;">
                 <tr>
-                  <td style="padding: 24px;">
-                    <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                  <td style="padding: 16px;">
+                    <table width="100%" cellpadding="0" cellspacing="0">
                       <tr>
-                        <td style="vertical-align: top; width: 90px; padding-right: 16px;">
+                        <!-- Logo Column -->
+                        <td style="vertical-align: top; width: 90px; padding-right: 16px; text-align: center;">
                           ${data.barbershopLogoUrl ? `
-                          <div style="width: 72px; height: 72px; background-color: #333; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-                            <img src="${data.barbershopLogoUrl}" alt="${data.barbershopName}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                          <div style="width: 70px; height: 70px; background-color: #1a1a2e; border-radius: 50%; overflow: hidden; margin: 0 auto;">
+                            <img src="${data.barbershopLogoUrl}" alt="${data.barbershopName}" style="width: 100%; height: 100%; object-fit: contain;" />
                           </div>
-                          ` : `
-                          <div style="width: 72px; height: 72px; background-color: #333; border-radius: 8px;"></div>
-                          `}
-                          <p style="margin: 8px 0 0; font-size: 11px; color: #ffffff; text-align: center;">${data.barbershopName}</p>
+                          ` : `<div style="width: 70px; height: 70px; background-color: #1a1a2e; border-radius: 50%; margin: 0 auto;"></div>`}
+                          <p style="margin: 8px 0 0; font-size: 10px; font-weight: 600; color: #1a1a2e; text-transform: uppercase;">${data.barbershopName}</p>
                         </td>
-                        <td style="vertical-align: top; color: #ffffff;">
-                          <p style="margin: 4px 0; font-size: 14px;"><strong>Serviço:</strong> ${data.serviceName}</p>
-                          <p style="margin: 4px 0; font-size: 14px;"><strong>Data:</strong> ${formattedDate} às ${formattedTime}</p>
-                          <p style="margin: 4px 0; font-size: 14px;"><strong>Profissional:</strong> ${data.professionalName}</p>
-                          ${priceFormatted ? `<p style="margin: 4px 0; font-size: 14px;"><strong>Valor:</strong> ${priceFormatted}</p>` : ''}
+                        <!-- Details Column -->
+                        <td style="vertical-align: top;">
+                          <p style="margin: 0 0 6px; font-size: 14px; color: #333;"><strong>Serviço:</strong> ${data.serviceName}</p>
+                          <p style="margin: 0 0 6px; font-size: 14px; color: #333;"><strong>Data:</strong> ${formattedDate} ${formattedTime}</p>
+                          <p style="margin: 0 0 6px; font-size: 14px; color: #333;"><strong>Profissional:</strong> ${data.professionalName}</p>
+                          ${priceFormatted ? `<p style="margin: 0; font-size: 14px; color: #333;"><strong>Valor:</strong> ${priceFormatted}</p>` : ''}
                         </td>
                       </tr>
                     </table>
@@ -121,8 +132,8 @@ function generateReminderEmailHTML(data: {
 </html>`;
 }
 
-// Generate WhatsApp message for reminders
-function generateWhatsAppMessage(data: {
+// Generate default WhatsApp message for reminders (fallback)
+function generateDefaultWhatsAppMessage(data: {
   barbershopName: string;
   barbershopAddress?: string;
   clientName: string;
@@ -322,23 +333,64 @@ const handler = async (req: Request): Promise<Response> => {
             let emailSent = false;
             let whatsappSent = false;
 
+            // Prepare template data for placeholder replacement
+            const templateData = {
+              client_name: clientData.name,
+              service_name: serviceName,
+              booking_date: formatDateBR(booking.booking_date),
+              booking_time: booking.booking_time.substring(0, 5),
+              professional_name: professionalName,
+              service_price: servicePrice ? formatPriceBR(servicePrice) : '',
+              barbershop_name: barbershopName,
+              barbershop_address: barbershopAddress || '',
+              barbershop_logo_url: barbershopLogoUrl || '',
+            };
+
+            // Fetch email template from notification_templates
+            const { data: emailTemplate } = await supabase
+              .from("notification_templates")
+              .select("content, subject")
+              .eq("barbershop_id", barbershopId)
+              .eq("trigger_event", "booking_reminder")
+              .eq("type", "email")
+              .eq("is_active", true)
+              .limit(1)
+              .maybeSingle();
+
             // Send Email reminder via webhook
             if (clientData.email && N8N_WEBHOOK_URL) {
               try {
-                const emailHtml = generateReminderEmailHTML({
-                  barbershopName,
-                  barbershopAddress: barbershopAddress || undefined,
-                  barbershopLogoUrl: barbershopLogoUrl || undefined,
-                  clientName: clientData.name,
-                  serviceName,
-                  bookingDate: booking.booking_date,
-                  bookingTime: booking.booking_time,
-                  professionalName,
-                  price: servicePrice,
-                });
+                let emailHtml: string;
+                let emailSubject: string;
+
+                if (emailTemplate?.content) {
+                  // Use template from database
+                  emailHtml = replacePlaceholders(emailTemplate.content, templateData);
+                  emailSubject = replacePlaceholders(
+                    emailTemplate.subject || `${barbershopName} - Lembrete de Agendamento`,
+                    templateData
+                  );
+                  console.log(`[${booking.id.substring(0, 8)}] Using email template from database`);
+                } else {
+                  // Fallback to default template
+                  emailHtml = generateDefaultReminderEmailHTML({
+                    barbershopName,
+                    barbershopAddress: barbershopAddress || undefined,
+                    barbershopLogoUrl: barbershopLogoUrl || undefined,
+                    clientName: clientData.name,
+                    serviceName,
+                    bookingDate: booking.booking_date,
+                    bookingTime: booking.booking_time,
+                    professionalName,
+                    price: servicePrice,
+                  });
+                  emailSubject = `${barbershopName} - Lembrete de Agendamento`;
+                  console.log(`[${booking.id.substring(0, 8)}] Using default email template`);
+                }
 
                 const emailPayload = {
                   notification_type: "reminder",
+                  trigger_event: "booking_reminder",
                   booking_id: booking.id,
                   client_name: clientData.name,
                   client_email: clientData.email,
@@ -347,8 +399,10 @@ const handler = async (req: Request): Promise<Response> => {
                   booking_date: booking.booking_date,
                   booking_time: booking.booking_time,
                   barbershop_name: barbershopName,
+                  barbershop_logo_url: barbershopLogoUrl,
+                  barbershop_address: barbershopAddress,
                   price: servicePrice,
-                  email_subject: `${barbershopName} - Lembrete de Agendamento`,
+                  email_subject: emailSubject,
                   email_html: emailHtml,
                   timestamp: new Date().toISOString(),
                 };
@@ -370,7 +424,7 @@ const handler = async (req: Request): Promise<Response> => {
                   content: JSON.stringify({
                     notification_type: "reminder",
                     booking_id: booking.id,
-                    subject: emailPayload.email_subject,
+                    subject: emailSubject,
                     webhook_status: emailRes.status,
                   }),
                   error_message: emailRes.ok ? null : `Webhook error: ${emailRes.status} - ${emailResponseText.substring(0, 200)}`,
@@ -394,6 +448,17 @@ const handler = async (req: Request): Promise<Response> => {
               }
             }
 
+            // Fetch WhatsApp template from notification_templates
+            const { data: whatsappTemplate } = await supabase
+              .from("notification_templates")
+              .select("content")
+              .eq("barbershop_id", barbershopId)
+              .eq("trigger_event", "booking_reminder")
+              .eq("type", "whatsapp")
+              .eq("is_active", true)
+              .limit(1)
+              .maybeSingle();
+
             // Send WhatsApp reminder via webhook
             if (clientData.phone && settings.whatsapp_enabled && N8N_WHATSAPP_WEBHOOK_URL) {
               try {
@@ -403,19 +468,30 @@ const handler = async (req: Request): Promise<Response> => {
                   phone = `55${phone}`;
                 }
 
-                const whatsappMessage = generateWhatsAppMessage({
-                  barbershopName,
-                  barbershopAddress: barbershopAddress || undefined,
-                  clientName: clientData.name,
-                  serviceName,
-                  bookingDate: booking.booking_date,
-                  bookingTime: booking.booking_time,
-                  professionalName,
-                  price: servicePrice,
-                });
+                let whatsappMessage: string;
+
+                if (whatsappTemplate?.content) {
+                  // Use template from database
+                  whatsappMessage = replacePlaceholders(whatsappTemplate.content, templateData);
+                  console.log(`[${booking.id.substring(0, 8)}] Using WhatsApp template from database`);
+                } else {
+                  // Fallback to default template
+                  whatsappMessage = generateDefaultWhatsAppMessage({
+                    barbershopName,
+                    barbershopAddress: barbershopAddress || undefined,
+                    clientName: clientData.name,
+                    serviceName,
+                    bookingDate: booking.booking_date,
+                    bookingTime: booking.booking_time,
+                    professionalName,
+                    price: servicePrice,
+                  });
+                  console.log(`[${booking.id.substring(0, 8)}] Using default WhatsApp template`);
+                }
 
                 const whatsappPayload = {
                   notification_type: "reminder",
+                  trigger_event: "booking_reminder",
                   booking_id: booking.id,
                   instanceName,
                   client_name: clientData.name,
@@ -425,6 +501,8 @@ const handler = async (req: Request): Promise<Response> => {
                   booking_date: booking.booking_date,
                   booking_time: booking.booking_time,
                   barbershop_name: barbershopName,
+                  barbershop_logo_url: barbershopLogoUrl,
+                  barbershop_address: barbershopAddress,
                   price: servicePrice,
                   message: whatsappMessage,
                   timestamp: new Date().toISOString(),
