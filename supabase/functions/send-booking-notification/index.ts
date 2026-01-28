@@ -316,6 +316,7 @@ const handler = async (req: Request): Promise<Response> => {
                             <p style="margin: 8px 0 0; font-size: 11px; color: #666; text-align: center;">${barbershopName}</p>
                           </td>
                           <td style="vertical-align: top;">
+                            <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Cliente:</strong> ${clientName}</p>
                             <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Servico:</strong> ${service}</p>
                             <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Data:</strong> ${formattedDate} ${time}</p>
                             <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Profissional:</strong> ${professional}</p>
