@@ -1,4 +1,4 @@
-import { MessageCircle, Lock, Crown, LogOut } from "lucide-react";
+import { Lock, Crown, LogOut, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,25 +10,29 @@ import {
 import { useTrialStatus } from "@/hooks/useTrialStatus";
 import { useBarbershopContext } from "@/hooks/useBarbershopContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-
-const SUPPORT_WHATSAPP = "5511969332465";
 
 export const TrialExpiredModal = () => {
   const { user } = useAuth();
   const { barbershop } = useBarbershopContext();
-  const { trialExpired, isLoading, hasActiveSubscription } = useTrialStatus(barbershop?.id);
+  const { trialExpired, isLoading, hasActiveSubscription, subscription } = useTrialStatus(barbershop?.id);
   const navigate = useNavigate();
+  const params = useParams<{ slug?: string }>();
 
   // Only show if user is logged in, trial expired, and no subscription
   const shouldShow = !!user && trialExpired && !hasActiveSubscription && !isLoading;
 
   const handleSubscribeClick = () => {
-    const message = encodeURIComponent(
-      `Olá! Gostaria de assinar um plano para continuar usando o sistema da barbearia ${barbershop?.name || ""}. Meu período de teste expirou.`
-    );
-    window.open(`https://wa.me/${SUPPORT_WHATSAPP}?text=${message}`, "_blank");
+    if (params.slug) {
+      navigate(`/b/${params.slug}/plans`);
+    }
+  };
+
+  const handleContinuePayment = () => {
+    if (subscription?.asaas_payment_link) {
+      window.open(subscription.asaas_payment_link, '_blank');
+    }
   };
 
   const handleLogoutAndRedirect = async () => {
@@ -39,6 +43,8 @@ export const TrialExpiredModal = () => {
   if (!shouldShow) {
     return null;
   }
+
+  const hasPendingPayment = subscription?.status === 'pending_payment' && subscription?.asaas_payment_link;
 
   return (
     <Dialog open={shouldShow}>
@@ -73,14 +79,25 @@ export const TrialExpiredModal = () => {
             </ul>
           </div>
 
-          <Button
-            onClick={handleSubscribeClick}
-            className="w-full flex items-center justify-center gap-2"
-            size="lg"
-          >
-            <MessageCircle className="w-5 h-5" />
-            Falar com Suporte para Assinar
-          </Button>
+          {hasPendingPayment ? (
+            <Button
+              onClick={handleContinuePayment}
+              className="w-full flex items-center justify-center gap-2"
+              size="lg"
+            >
+              <ExternalLink className="w-5 h-5" />
+              Continuar Pagamento Pendente
+            </Button>
+          ) : (
+            <Button
+              onClick={handleSubscribeClick}
+              className="w-full flex items-center justify-center gap-2"
+              size="lg"
+            >
+              <Crown className="w-5 h-5" />
+              Ver Planos e Assinar
+            </Button>
+          )}
 
           <Button
             onClick={handleLogoutAndRedirect}
@@ -93,7 +110,7 @@ export const TrialExpiredModal = () => {
           </Button>
 
           <p className="text-xs text-center text-muted-foreground">
-            Nossa equipe está disponível para ajudá-lo a escolher o melhor plano.
+            Pagamento seguro via PIX, cartão ou boleto.
           </p>
         </div>
       </DialogContent>

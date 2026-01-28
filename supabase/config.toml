@@ -1,1 +1,52 @@
 project_id = "iycjzqxalwldyychorxa"
+
+[functions.barbershop-chat]
+verify_jwt = false
+
+[functions.check-booking-reminders]
+verify_jwt = false
+
+[functions.check-expiring-subscriptions]
+verify_jwt = false
+
+[functions.create-barber]
+verify_jwt = false
+
+[functions.create-mercadopago-checkout]
+verify_jwt = false
+
+[functions.generate-notification-messages]
+verify_jwt = false
+
+[functions.mercadopago-webhook]
+verify_jwt = false
+
+[functions.og-meta]
+verify_jwt = false
+
+[functions.register-barbershop]
+verify_jwt = false
+
+[functions.send-booking-notification]
+verify_jwt = false
+
+[functions.send-email-webhook]
+verify_jwt = false
+
+[functions.send-subscription-expiry-notification]
+verify_jwt = false
+
+[functions.send-whatsapp-message]
+verify_jwt = false
+
+[functions.send-whatsapp-webhook]
+verify_jwt = false
+
+[functions.whatsapp-connect]
+verify_jwt = false
+
+[functions.create-asaas-checkout]
+verify_jwt = false
+
+[functions.asaas-webhook]
+verify_jwt = false

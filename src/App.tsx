@@ -20,6 +20,7 @@ import Account from "./pages/Account";
 import About from "./pages/About";
 import Gallery from "./pages/Gallery";
 import Subscriptions from "./pages/Subscriptions";
+import PlatformPlans from "./pages/PlatformPlans";
 import RegisterBarbershop from "./pages/RegisterBarbershop";
 import NotFound from "./pages/NotFound";
 
@@ -157,6 +158,7 @@ const App = () => (
                   <Route path="booking" element={<Booking />} />
                   <Route path="gallery" element={<Gallery />} />
                   <Route path="subscriptions" element={<Subscriptions />} />
+                  <Route path="plans" element={<PlatformPlans />} />
                   <Route path="about" element={<About />} />
                   <Route path="auth" element={<BarbershopAuth />} />
 
