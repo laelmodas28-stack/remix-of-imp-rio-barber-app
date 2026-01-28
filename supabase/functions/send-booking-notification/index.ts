@@ -186,11 +186,12 @@ const handler = async (req: Request): Promise<Response> => {
       .eq("id", barbershopId)
       .single();
 
-    // Fetch notification settings
+    // Fetch notification settings (use limit(1) to handle duplicates)
     const { data: notificationSettings } = await supabase
       .from("notification_settings")
       .select("*")
       .eq("barbershop_id", barbershopId)
+      .limit(1)
       .maybeSingle();
 
     // Fetch barbershop settings for WhatsApp config
@@ -198,10 +199,11 @@ const handler = async (req: Request): Promise<Response> => {
       .from("barbershop_settings")
       .select("whatsapp_enabled, whatsapp_send_booking_confirmation")
       .eq("barbershop_id", barbershopId)
+      .limit(1)
       .maybeSingle();
 
     if (!notificationSettings?.enabled) {
-      console.log("Notifications disabled");
+      console.log("Notifications disabled - notificationSettings:", notificationSettings);
       return new Response(
         JSON.stringify({ message: "Notifications disabled" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
