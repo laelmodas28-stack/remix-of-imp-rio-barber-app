@@ -39,11 +39,25 @@ import {
   Loader2,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  User,
+  Phone,
+  Mail,
+  MapPin,
+  Eye,
+  MessageCircle
 } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+
+interface Owner {
+  id: string;
+  full_name: string;
+  email: string | null;
+  phone: string | null;
+}
 
 interface Barbershop {
   id: string;
@@ -51,6 +65,11 @@ interface Barbershop {
   slug: string;
   is_active: boolean;
   created_at: string;
+  owner_id: string;
+  phone: string | null;
+  whatsapp: string | null;
+  address: string | null;
+  owner?: Owner;
   subscription?: {
     id: string;
     plan_type: string;
@@ -69,6 +88,7 @@ export function BarbershopsPage() {
   const [search, setSearch] = useState("");
   const [selectedBarbershop, setSelectedBarbershop] = useState<Barbershop | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   
   // Edit form state
   const [editPlanType, setEditPlanType] = useState("");
@@ -76,13 +96,13 @@ export function BarbershopsPage() {
   const [editNotes, setEditNotes] = useState("");
   const [extendDays, setExtendDays] = useState("");
 
-  // Fetch all barbershops with subscriptions
+  // Fetch all barbershops with subscriptions and owner info
   const { data: barbershops, isLoading } = useQuery({
     queryKey: ["superadmin-barbershops"],
     queryFn: async () => {
       const { data: shops, error: shopsError } = await supabase
         .from("barbershops")
-        .select("id, name, slug, is_active, created_at")
+        .select("id, name, slug, is_active, created_at, owner_id, phone, whatsapp, address")
         .order("created_at", { ascending: false });
 
       if (shopsError) throw shopsError;
@@ -94,9 +114,19 @@ export function BarbershopsPage() {
 
       if (subsError) throw subsError;
 
-      // Merge subscriptions with barbershops
+      // Get owner profiles
+      const ownerIds = [...new Set(shops?.map(s => s.owner_id) || [])];
+      const { data: owners, error: ownersError } = await supabase
+        .from("profiles")
+        .select("id, full_name, email, phone")
+        .in("id", ownerIds);
+
+      if (ownersError) throw ownersError;
+
+      // Merge subscriptions and owners with barbershops
       const merged = shops?.map((shop) => ({
         ...shop,
+        owner: owners?.find((o) => o.id === shop.owner_id),
         subscription: subs?.find((sub) => sub.barbershop_id === shop.id),
       }));
 
@@ -234,7 +264,9 @@ export function BarbershopsPage() {
   const filteredBarbershops = barbershops?.filter(
     (b) =>
       b.name.toLowerCase().includes(search.toLowerCase()) ||
-      b.slug.toLowerCase().includes(search.toLowerCase())
+      b.slug.toLowerCase().includes(search.toLowerCase()) ||
+      b.owner?.full_name?.toLowerCase().includes(search.toLowerCase()) ||
+      b.owner?.email?.toLowerCase().includes(search.toLowerCase())
   );
 
   const getStatusBadge = (barbershop: Barbershop) => {
@@ -331,7 +363,8 @@ export function BarbershopsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Barbearia</TableHead>
-                  <TableHead>Slug</TableHead>
+                  <TableHead>Proprietário</TableHead>
+                  <TableHead>Contato</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Plano</TableHead>
                   <TableHead>Criado em</TableHead>
@@ -342,21 +375,60 @@ export function BarbershopsPage() {
                 {filteredBarbershops?.map((barbershop) => (
                   <TableRow key={barbershop.id}>
                     <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="w-4 h-4 text-muted-foreground" />
-                        {barbershop.name}
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="w-4 h-4 text-muted-foreground" />
+                          {barbershop.name}
+                        </div>
+                        <a
+                          href={`/b/${barbershop.slug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-primary hover:underline text-xs ml-6"
+                        >
+                          /{barbershop.slug}
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <a
-                        href={`/b/${barbershop.slug}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-primary hover:underline"
-                      >
-                        /{barbershop.slug}
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
+                      {barbershop.owner ? (
+                        <div className="flex flex-col">
+                          <span className="font-medium text-sm flex items-center gap-1">
+                            <User className="w-3 h-3" />
+                            {barbershop.owner.full_name}
+                          </span>
+                          {barbershop.owner.email && (
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Mail className="w-3 h-3" />
+                              {barbershop.owner.email}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-0.5 text-xs">
+                        {barbershop.owner?.phone && (
+                          <span className="flex items-center gap-1">
+                            <Phone className="w-3 h-3" />
+                            {barbershop.owner.phone}
+                          </span>
+                        )}
+                        {barbershop.whatsapp && (
+                          <a 
+                            href={`https://wa.me/${barbershop.whatsapp.replace(/\D/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-green-600 hover:underline flex items-center gap-1"
+                          >
+                            <MessageCircle className="w-3 h-3" />
+                            WhatsApp
+                          </a>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       {barbershop.is_active ? (
@@ -379,6 +451,17 @@ export function BarbershopsPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedBarbershop(barbershop);
+                            setIsDetailsDialogOpen(true);
+                          }}
+                          title="Ver detalhes"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
                         <Button
                           variant="outline"
                           size="sm"
@@ -480,6 +563,221 @@ export function BarbershopsPage() {
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
               ) : null}
               Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Details Dialog */}
+      <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 className="w-5 h-5" />
+              {selectedBarbershop?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Detalhes completos do cadastro
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedBarbershop && (
+            <div className="space-y-6 py-4">
+              {/* Barbershop Info */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
+                  Informações da Barbearia
+                </h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <Label className="text-muted-foreground">Nome</Label>
+                    <p className="font-medium">{selectedBarbershop.name}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Slug</Label>
+                    <a
+                      href={`/b/${selectedBarbershop.slug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-primary hover:underline font-medium"
+                    >
+                      /{selectedBarbershop.slug}
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Telefone</Label>
+                    <p className="font-medium">{selectedBarbershop.phone || '-'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">WhatsApp</Label>
+                    {selectedBarbershop.whatsapp ? (
+                      <a 
+                        href={`https://wa.me/${selectedBarbershop.whatsapp.replace(/\D/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-green-600 hover:underline flex items-center gap-1 font-medium"
+                      >
+                        <MessageCircle className="w-3 h-3" />
+                        {selectedBarbershop.whatsapp}
+                      </a>
+                    ) : (
+                      <p className="font-medium">-</p>
+                    )}
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-muted-foreground">Endereço</Label>
+                    <p className="font-medium flex items-center gap-1">
+                      {selectedBarbershop.address ? (
+                        <>
+                          <MapPin className="w-3 h-3" />
+                          {selectedBarbershop.address}
+                        </>
+                      ) : '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Cadastrado em</Label>
+                    <p className="font-medium">
+                      {format(new Date(selectedBarbershop.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Status</Label>
+                    <p>
+                      {selectedBarbershop.is_active ? (
+                        <Badge variant="outline" className="text-green-600 border-green-600">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Ativo
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-red-600 border-red-600">
+                          <XCircle className="w-3 h-3 mr-1" />
+                          Inativo
+                        </Badge>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Owner Info */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  Proprietário
+                </h3>
+                {selectedBarbershop.owner ? (
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <Label className="text-muted-foreground">Nome completo</Label>
+                      <p className="font-medium">{selectedBarbershop.owner.full_name}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">E-mail</Label>
+                      <p className="font-medium flex items-center gap-1">
+                        {selectedBarbershop.owner.email ? (
+                          <a href={`mailto:${selectedBarbershop.owner.email}`} className="text-primary hover:underline">
+                            {selectedBarbershop.owner.email}
+                          </a>
+                        ) : '-'}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Telefone</Label>
+                      <p className="font-medium">{selectedBarbershop.owner.phone || '-'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">ID do usuário</Label>
+                      <p className="font-mono text-xs text-muted-foreground">{selectedBarbershop.owner_id}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-sm">Proprietário não encontrado</p>
+                )}
+              </div>
+
+              <Separator />
+
+              {/* Subscription Info */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
+                  Assinatura
+                </h3>
+                {selectedBarbershop.subscription ? (
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <Label className="text-muted-foreground">Plano</Label>
+                      <p className="font-medium capitalize">{selectedBarbershop.subscription.plan_type}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Status</Label>
+                      <p>{getStatusBadge(selectedBarbershop)}</p>
+                    </div>
+                    {selectedBarbershop.subscription.trial_ends_at && (
+                      <div>
+                        <Label className="text-muted-foreground">Trial expira em</Label>
+                        <p className="font-medium">
+                          {format(new Date(selectedBarbershop.subscription.trial_ends_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        </p>
+                      </div>
+                    )}
+                    {selectedBarbershop.subscription.subscription_ends_at && (
+                      <div>
+                        <Label className="text-muted-foreground">Assinatura expira em</Label>
+                        <p className="font-medium">
+                          {format(new Date(selectedBarbershop.subscription.subscription_ends_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        </p>
+                      </div>
+                    )}
+                    {selectedBarbershop.subscription.payment_value && (
+                      <div>
+                        <Label className="text-muted-foreground">Valor</Label>
+                        <p className="font-medium">R$ {selectedBarbershop.subscription.payment_value.toFixed(2)}</p>
+                      </div>
+                    )}
+                    {selectedBarbershop.subscription.paid_at && (
+                      <div>
+                        <Label className="text-muted-foreground">Pago em</Label>
+                        <p className="font-medium text-green-600">
+                          {format(new Date(selectedBarbershop.subscription.paid_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        </p>
+                      </div>
+                    )}
+                    {selectedBarbershop.subscription.asaas_payment_link && (
+                      <div className="col-span-2">
+                        <Label className="text-muted-foreground">Link de pagamento</Label>
+                        <a 
+                          href={selectedBarbershop.subscription.asaas_payment_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline text-xs break-all flex items-center gap-1"
+                        >
+                          <ExternalLink className="w-3 h-3 shrink-0" />
+                          {selectedBarbershop.subscription.asaas_payment_link}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-sm">Sem assinatura cadastrada</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDetailsDialogOpen(false)}>
+              Fechar
+            </Button>
+            <Button onClick={() => {
+              setIsDetailsDialogOpen(false);
+              if (selectedBarbershop) handleEditClick(selectedBarbershop);
+            }}>
+              <Settings2 className="w-4 h-4 mr-1" />
+              Gerenciar Plano
             </Button>
           </DialogFooter>
         </DialogContent>
