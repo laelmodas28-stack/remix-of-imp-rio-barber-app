@@ -511,9 +511,9 @@ export function BarbershopsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="trial">Trial (Teste)</SelectItem>
-                  <SelectItem value="basic">Básico</SelectItem>
-                  <SelectItem value="professional">Profissional</SelectItem>
-                  <SelectItem value="enterprise">Enterprise</SelectItem>
+                  <SelectItem value="essencial">Essencial</SelectItem>
+                  <SelectItem value="profissional">Profissional</SelectItem>
+                  <SelectItem value="completo">Completo</SelectItem>
                 </SelectContent>
               </Select>
             </div>
