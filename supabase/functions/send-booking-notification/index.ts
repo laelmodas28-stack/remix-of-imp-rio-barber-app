@@ -321,7 +321,7 @@ const handler = async (req: Request): Promise<Response> => {
           emailSubject = replacePlaceholders(emailTemplate.subject || `${barbershopName} - Confirmação de Agendamento`);
           console.log("Using dynamic email template from database");
         } else {
-          // Fallback to default template
+          // Fallback to default template matching new standard
           console.log("No custom template found, using default template");
           emailSubject = `${barbershopName} - Confirmação de Agendamento`;
           emailHtml = `
@@ -331,39 +331,56 @@ const handler = async (req: Request): Promise<Response> => {
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
           </head>
-          <body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
+          <body style="margin: 0; padding: 0; background-color: #f0f0f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f0f0f0; padding: 40px 20px;">
               <tr>
                 <td align="center">
-                  <table width="500" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);">
+                  <table width="520" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); overflow: hidden;">
+                    <!-- Header -->
                     <tr>
-                      <td style="padding: 24px 32px 16px; text-align: center; border-bottom: 1px solid #e5e5e5;">
-                        <h1 style="margin: 0; font-size: 18px; font-weight: 600; color: #1a1a2e;">${barbershopName} - Confirmação de Agendamento</h1>
+                      <td style="background-color: #1a1a2e; padding: 20px 32px; text-align: center;">
+                        <h1 style="margin: 0; font-size: 18px; font-weight: 600; color: #ffffff;">${barbershopName} - Confirmação de Agendamento</h1>
                       </td>
                     </tr>
+                    <!-- Greeting -->
                     <tr>
-                      <td style="padding: 24px 32px;">
-                        <table width="100%" cellpadding="0" cellspacing="0">
+                      <td style="padding: 24px 32px 8px;">
+                        <p style="margin: 0; font-size: 15px; color: #333;">Olá, <strong>${clientName}</strong>!</p>
+                        <p style="margin: 8px 0 0; font-size: 14px; color: #666;">Seu agendamento foi confirmado com sucesso.</p>
+                      </td>
+                    </tr>
+                    <!-- Service Card -->
+                    <tr>
+                      <td style="padding: 16px 32px 24px;">
+                        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f8f8; border-radius: 8px; border: 1px solid #e5e5e5;">
                           <tr>
-                            <td style="vertical-align: top; width: 80px; padding-right: 16px;">
-                              ${barbershop?.logo_url ? `
-                              <div style="width: 72px; height: 72px; background-color: #1a1a2e; border-radius: 8px; overflow: hidden;">
-                                <img src="${barbershop.logo_url}" alt="${barbershopName}" style="width: 100%; height: 100%; object-fit: contain;" />
-                              </div>
-                              ` : `<div style="width: 72px; height: 72px; background-color: #1a1a2e; border-radius: 8px;"></div>`}
-                              <p style="margin: 8px 0 0; font-size: 11px; color: #666; text-align: center;">${barbershopName}</p>
-                            </td>
-                            <td style="vertical-align: top;">
-                              <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Cliente:</strong> ${clientName}</p>
-                              <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Serviço:</strong> ${service}</p>
-                              <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Data:</strong> ${formattedDate} ${time}</p>
-                              <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Profissional:</strong> ${professional}</p>
-                              <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Valor:</strong> R$ ${price.toFixed(2).replace('.', ',')}</p>
+                            <td style="padding: 16px;">
+                              <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                  <!-- Logo Column -->
+                                  <td style="vertical-align: top; width: 90px; padding-right: 16px; text-align: center;">
+                                    ${barbershop?.logo_url ? `
+                                    <div style="width: 70px; height: 70px; background-color: #1a1a2e; border-radius: 50%; overflow: hidden; margin: 0 auto;">
+                                      <img src="${barbershop.logo_url}" alt="${barbershopName}" style="width: 100%; height: 100%; object-fit: contain;" />
+                                    </div>
+                                    ` : `<div style="width: 70px; height: 70px; background-color: #1a1a2e; border-radius: 50%; margin: 0 auto;"></div>`}
+                                    <p style="margin: 8px 0 0; font-size: 10px; font-weight: 600; color: #1a1a2e; text-transform: uppercase;">${barbershopName}</p>
+                                  </td>
+                                  <!-- Details Column -->
+                                  <td style="vertical-align: top;">
+                                    <p style="margin: 0 0 6px; font-size: 14px; color: #333;"><strong>Serviço:</strong> ${service}</p>
+                                    <p style="margin: 0 0 6px; font-size: 14px; color: #333;"><strong>Data:</strong> ${formattedDate} ${time}</p>
+                                    <p style="margin: 0 0 6px; font-size: 14px; color: #333;"><strong>Profissional:</strong> ${professional}</p>
+                                    <p style="margin: 0; font-size: 14px; color: #333;"><strong>Valor:</strong> R$ ${price.toFixed(2).replace('.', ',')}</p>
+                                  </td>
+                                </tr>
+                              </table>
                             </td>
                           </tr>
                         </table>
                       </td>
                     </tr>
+                    <!-- Footer -->
                     <tr>
                       <td style="padding: 16px 32px 24px; text-align: center; border-top: 1px solid #e5e5e5;">
                         <p style="margin: 0 0 4px; font-size: 12px; color: #888;">Enviado por ImperioApp</p>
