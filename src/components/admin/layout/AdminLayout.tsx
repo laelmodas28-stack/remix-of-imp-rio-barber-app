@@ -2,6 +2,7 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { Outlet, Navigate, useLocation } from "react-router-dom";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminHeader } from "./AdminHeader";
+import { AdminTrialBanner } from "./AdminTrialBanner";
 import { useBarbershopContext } from "@/hooks/useBarbershopContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
@@ -76,6 +77,7 @@ export function AdminLayout() {
       <div className="min-h-screen flex w-full bg-background">
         <AdminSidebar />
         <SidebarInset className="flex flex-col flex-1 overflow-hidden">
+          <AdminTrialBanner />
           <AdminHeader />
           <main className="flex-1 overflow-auto p-6">
             <Outlet />
