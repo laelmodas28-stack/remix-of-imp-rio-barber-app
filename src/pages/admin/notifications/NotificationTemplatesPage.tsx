@@ -54,7 +54,7 @@ const DEFAULT_TEMPLATES = {
   email: {
     booking_confirmation: {
       name: "Confirmação de Agendamento - Email",
-      subject: "ImperioApp - Confirmação de Agendamento",
+      subject: "{{barbearia_nome}} - Confirmação de Agendamento",
       content: `<!DOCTYPE html>
 <html>
 <head>
@@ -66,16 +66,9 @@ const DEFAULT_TEMPLATES = {
     <tr>
       <td align="center">
         <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden;">
-          <!-- Header com logo ImperioApp -->
-          <tr>
-            <td align="center" style="padding: 30px 20px; background-color: #ffffff;">
-              <img src="{{imperio_logo_url}}" alt="ImperioApp" style="height: 60px; max-width: 200px;" />
-            </td>
-          </tr>
-          
           <!-- Título -->
           <tr>
-            <td align="center" style="padding: 0 20px 20px;">
+            <td align="center" style="padding: 30px 20px 20px;">
               <h1 style="margin: 0; color: #1a1a2e; font-size: 22px; font-weight: 600;">{{barbearia_nome}} - Confirmação de Agendamento</h1>
             </td>
           </tr>
@@ -132,7 +125,7 @@ const DEFAULT_TEMPLATES = {
     },
     booking_reminder: {
       name: "Lembrete de Agendamento - Email",
-      subject: "ImperioApp - Lembrete de Agendamento",
+      subject: "{{barbearia_nome}} - Lembrete de Agendamento",
       content: `<!DOCTYPE html>
 <html>
 <head>
@@ -144,16 +137,9 @@ const DEFAULT_TEMPLATES = {
     <tr>
       <td align="center">
         <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden;">
-          <!-- Header com logo ImperioApp -->
-          <tr>
-            <td align="center" style="padding: 30px 20px; background-color: #ffffff;">
-              <img src="{{imperio_logo_url}}" alt="ImperioApp" style="height: 60px; max-width: 200px;" />
-            </td>
-          </tr>
-          
           <!-- Título -->
           <tr>
-            <td align="center" style="padding: 0 20px 20px;">
+            <td align="center" style="padding: 30px 20px 20px;">
               <h1 style="margin: 0; color: #1a1a2e; font-size: 22px; font-weight: 600;">{{barbearia_nome}} - Lembrete de Agendamento</h1>
             </td>
           </tr>
@@ -216,7 +202,7 @@ const DEFAULT_TEMPLATES = {
     },
     booking_cancelled: {
       name: "Cancelamento de Agendamento - Email",
-      subject: "ImperioApp - Agendamento Cancelado",
+      subject: "{{barbearia_nome}} - Agendamento Cancelado",
       content: `<!DOCTYPE html>
 <html>
 <head>
@@ -228,16 +214,9 @@ const DEFAULT_TEMPLATES = {
     <tr>
       <td align="center">
         <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden;">
-          <!-- Header com logo ImperioApp -->
-          <tr>
-            <td align="center" style="padding: 30px 20px; background-color: #ffffff;">
-              <img src="{{imperio_logo_url}}" alt="ImperioApp" style="height: 60px; max-width: 200px;" />
-            </td>
-          </tr>
-          
           <!-- Título -->
           <tr>
-            <td align="center" style="padding: 0 20px 20px;">
+            <td align="center" style="padding: 30px 20px 20px;">
               <h1 style="margin: 0; color: #1a1a2e; font-size: 22px; font-weight: 600;">{{barbearia_nome}} - Agendamento Cancelado</h1>
             </td>
           </tr>
