@@ -20,7 +20,8 @@ import {
   ChevronLeft, 
   ChevronRight,
   Clock,
-  AlertCircle
+  AlertCircle,
+  User
 } from "lucide-react";
 
 import { PageHeader } from "@/components/admin/shared/PageHeader";
@@ -30,6 +31,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useBarbershopContext } from "@/hooks/useBarbershopContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -70,6 +78,7 @@ export function CalendarPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [professionalFilter, setProfessionalFilter] = useState<string>("all");
 
   // For barbers, get their linked professional ID
   const { data: linkedProfessional } = useQuery({
@@ -90,9 +99,28 @@ export function CalendarPage() {
     enabled: !!user?.id && !!barbershop?.id && isBarber,
   });
 
+  // Fetch all professionals for the filter (admin only)
+  const { data: professionals = [] } = useQuery({
+    queryKey: ["barbershop-professionals", barbershop?.id],
+    queryFn: async () => {
+      if (!barbershop?.id) return [];
+      
+      const { data, error } = await supabase
+        .from("professionals")
+        .select("id, name, photo_url")
+        .eq("barbershop_id", barbershop.id)
+        .eq("is_active", true)
+        .order("name");
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!barbershop?.id && isAdmin,
+  });
+
   // Fetch bookings for the month
   const { data: bookings, isLoading } = useQuery({
-    queryKey: ["calendar-bookings", barbershop?.id, format(currentMonth, "yyyy-MM"), linkedProfessional?.id, isAdmin],
+    queryKey: ["calendar-bookings", barbershop?.id, format(currentMonth, "yyyy-MM"), professionalFilter, linkedProfessional?.id, isAdmin],
     queryFn: async () => {
       if (!barbershop?.id) return [];
       
@@ -120,6 +148,9 @@ export function CalendarPage() {
       // CRITICAL: For barbers, only show their own appointments
       if (isBarber && !isAdmin && linkedProfessional?.id) {
         query = query.eq("professional_id", linkedProfessional.id);
+      } else if (isAdmin && professionalFilter !== "all") {
+        // Apply professional filter for admins
+        query = query.eq("professional_id", professionalFilter);
       }
       
       const { data: bookingsData, error } = await query;
@@ -228,22 +259,42 @@ export function CalendarPage() {
         {/* Calendar Grid */}
         <Card className="lg:col-span-2">
           <CardContent className="p-4">
-            {/* Month Navigation */}
-            <div className="flex items-center justify-between mb-4">
-              <Button variant="outline" size="icon" onClick={goToPreviousMonth}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-semibold capitalize">
-                  {format(currentMonth, "MMMM yyyy", { locale: ptBR })}
-                </h2>
-                <Button variant="ghost" size="sm" onClick={goToToday}>
-                  Hoje
+            {/* Month Navigation and Filter */}
+            <div className="flex flex-col gap-4 mb-4">
+              <div className="flex items-center justify-between">
+                <Button variant="outline" size="icon" onClick={goToPreviousMonth}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-semibold capitalize">
+                    {format(currentMonth, "MMMM yyyy", { locale: ptBR })}
+                  </h2>
+                  <Button variant="ghost" size="sm" onClick={goToToday}>
+                    Hoje
+                  </Button>
+                </div>
+                <Button variant="outline" size="icon" onClick={goToNextMonth}>
+                  <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
-              <Button variant="outline" size="icon" onClick={goToNextMonth}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+
+              {/* Professional Filter - Admin only */}
+              {isAdmin && professionals.length > 0 && (
+                <Select value={professionalFilter} onValueChange={setProfessionalFilter}>
+                  <SelectTrigger className="w-full sm:w-[250px]">
+                    <User className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Filtrar por profissional" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os profissionais</SelectItem>
+                    {professionals.map((prof) => (
+                      <SelectItem key={prof.id} value={prof.id}>
+                        {prof.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             {/* Weekday Headers */}
