@@ -73,11 +73,11 @@ export const useTrialStatus = (barbershopId?: string): TrialStatus => {
     };
   }
 
-  // No subscription found - consider as no active subscription
+  // No subscription found - consider as expired (should have trial from registration)
   if (!subscription) {
     return {
       isInTrial: false,
-      trialExpired: false,
+      trialExpired: true, // No subscription = expired/blocked
       daysRemaining: 0,
       trialEndDate: null,
       hasActiveSubscription: false,
@@ -124,12 +124,16 @@ export const useTrialStatus = (barbershopId?: string): TrialStatus => {
     };
   }
 
-  // Expired or pending payment
+  // Expired, pending payment, or any other status without active subscription
+  // Check if trial_ends_at exists and has passed
+  const trialEndDate = subscription.trial_ends_at ? new Date(subscription.trial_ends_at) : null;
+  const trialHasExpired = trialEndDate ? !isAfter(trialEndDate, now) : true;
+
   return {
     isInTrial: false,
-    trialExpired: subscription.status === 'expired',
+    trialExpired: trialHasExpired || subscription.status === 'expired',
     daysRemaining: 0,
-    trialEndDate: subscription.trial_ends_at ? new Date(subscription.trial_ends_at) : null,
+    trialEndDate,
     hasActiveSubscription: false,
     isLoading: false,
     subscription,
