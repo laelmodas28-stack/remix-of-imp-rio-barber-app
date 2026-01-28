@@ -219,11 +219,17 @@ export type Database = {
       }
       barbershop_subscriptions: {
         Row: {
+          asaas_customer_id: string | null
+          asaas_payment_id: string | null
+          asaas_payment_link: string | null
           barbershop_id: string
           created_at: string
           created_by: string | null
           id: string
           notes: string | null
+          paid_at: string | null
+          payment_method: string | null
+          payment_value: number | null
           plan_type: string
           status: string
           subscription_ends_at: string | null
@@ -233,11 +239,17 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          asaas_customer_id?: string | null
+          asaas_payment_id?: string | null
+          asaas_payment_link?: string | null
           barbershop_id: string
           created_at?: string
           created_by?: string | null
           id?: string
           notes?: string | null
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_value?: number | null
           plan_type?: string
           status?: string
           subscription_ends_at?: string | null
@@ -247,11 +259,17 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          asaas_customer_id?: string | null
+          asaas_payment_id?: string | null
+          asaas_payment_link?: string | null
           barbershop_id?: string
           created_at?: string
           created_by?: string | null
           id?: string
           notes?: string | null
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_value?: number | null
           plan_type?: string
           status?: string
           subscription_ends_at?: string | null
@@ -1251,6 +1269,51 @@ export type Database = {
           entity_type?: string
           id?: string
           performed_by?: string | null
+        }
+        Relationships: []
+      }
+      platform_plans: {
+        Row: {
+          billing_cycle: string
+          created_at: string
+          description: string | null
+          features: Json | null
+          id: string
+          is_active: boolean | null
+          max_professionals: number | null
+          max_services: number | null
+          name: string
+          price: number
+          sort_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          billing_cycle?: string
+          created_at?: string
+          description?: string | null
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          max_professionals?: number | null
+          max_services?: number | null
+          name: string
+          price: number
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          billing_cycle?: string
+          created_at?: string
+          description?: string | null
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          max_professionals?: number | null
+          max_services?: number | null
+          name?: string
+          price?: number
+          sort_order?: number | null
+          updated_at?: string
         }
         Relationships: []
       }

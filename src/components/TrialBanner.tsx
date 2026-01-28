@@ -1,23 +1,23 @@
-import { Clock, MessageCircle } from "lucide-react";
+import { Clock, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTrialStatus } from "@/hooks/useTrialStatus";
 import { useBarbershopContext } from "@/hooks/useBarbershopContext";
-
-const SUPPORT_WHATSAPP = "5511969332465";
+import { useNavigate, useParams } from "react-router-dom";
 
 export const TrialBanner = () => {
   const { barbershop } = useBarbershopContext();
   const { isInTrial, daysRemaining, isLoading, hasActiveSubscription } = useTrialStatus(barbershop?.id);
+  const navigate = useNavigate();
+  const params = useParams<{ slug?: string }>();
 
   if (isLoading || hasActiveSubscription || !isInTrial) {
     return null;
   }
 
   const handleSubscribeClick = () => {
-    const message = encodeURIComponent(
-      `Olá! Gostaria de assinar um plano para a barbearia ${barbershop?.name || ""}. Meu período de teste está acabando.`
-    );
-    window.open(`https://wa.me/${SUPPORT_WHATSAPP}?text=${message}`, "_blank");
+    if (params.slug) {
+      navigate(`/b/${params.slug}/plans`);
+    }
   };
 
   return (
@@ -36,7 +36,7 @@ export const TrialBanner = () => {
           onClick={handleSubscribeClick}
           className="flex items-center gap-2"
         >
-          <MessageCircle className="w-4 h-4" />
+          <Crown className="w-4 h-4" />
           <span className="hidden sm:inline">Assinar Plano</span>
         </Button>
       </div>
