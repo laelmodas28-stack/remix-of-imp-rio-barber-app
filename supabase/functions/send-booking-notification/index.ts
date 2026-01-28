@@ -283,67 +283,104 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
     
+    // Fetch email template from notification_templates
+    const { data: emailTemplate } = await supabase
+      .from("notification_templates")
+      .select("content, subject")
+      .eq("barbershop_id", barbershopId)
+      .eq("trigger_event", "booking_confirmation")
+      .eq("type", "email")
+      .eq("is_active", true)
+      .maybeSingle();
+
+    // Helper function to replace placeholders in templates
+    const replacePlaceholders = (template: string): string => {
+      return template
+        .replace(/\{\{cliente_nome\}\}/g, clientName)
+        .replace(/\{\{servico_nome\}\}/g, service)
+        .replace(/\{\{data_agendamento\}\}/g, formattedDate)
+        .replace(/\{\{hora_agendamento\}\}/g, time)
+        .replace(/\{\{profissional_nome\}\}/g, professional)
+        .replace(/\{\{servico_preco\}\}/g, `R$ ${price.toFixed(2).replace('.', ',')}`)
+        .replace(/\{\{barbearia_nome\}\}/g, barbershopName)
+        .replace(/\{\{barbearia_endereco\}\}/g, barbershopAddress || '')
+        .replace(/\{\{barbearia_logo_url\}\}/g, barbershop?.logo_url || '');
+    };
+
     // Send email to client
     if (notificationSettings.send_to_client && clientEmail) {
       try {
-        const emailHtml = `
-        <!DOCTYPE html>
-        <html lang="pt-BR">
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        </head>
-        <body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
-            <tr>
-              <td align="center">
-                <table width="500" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);">
-                  <tr>
-                    <td style="padding: 24px 32px 16px; text-align: center; border-bottom: 1px solid #e5e5e5;">
-                      <h1 style="margin: 0; font-size: 18px; font-weight: 600; color: #1a1a2e;">${barbershopName} - Confirmacao de Agendamento</h1>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 24px 32px;">
-                      <table width="100%" cellpadding="0" cellspacing="0">
-                        <tr>
-                          <td style="vertical-align: top; width: 80px; padding-right: 16px;">
-                            ${barbershop?.logo_url ? `
-                            <div style="width: 72px; height: 72px; background-color: #1a1a2e; border-radius: 8px; overflow: hidden;">
-                              <img src="${barbershop.logo_url}" alt="${barbershopName}" style="width: 100%; height: 100%; object-fit: contain;" />
-                            </div>
-                            ` : `<div style="width: 72px; height: 72px; background-color: #1a1a2e; border-radius: 8px;"></div>`}
-                            <p style="margin: 8px 0 0; font-size: 11px; color: #666; text-align: center;">${barbershopName}</p>
-                          </td>
-                          <td style="vertical-align: top;">
-                            <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Cliente:</strong> ${clientName}</p>
-                            <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Servico:</strong> ${service}</p>
-                            <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Data:</strong> ${formattedDate} ${time}</p>
-                            <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Profissional:</strong> ${professional}</p>
-                            <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Valor:</strong> R$ ${price.toFixed(2).replace('.', ',')}</p>
-                          </td>
-                        </tr>
-                      </table>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 16px 32px 24px; text-align: center; border-top: 1px solid #e5e5e5;">
-                      <p style="margin: 0 0 4px; font-size: 12px; color: #888;">Enviado por ImperioApp</p>
-                      ${barbershopAddress ? `<p style="margin: 0; font-size: 11px; color: #aaa;">${barbershopAddress}</p>` : ''}
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-          </table>
-        </body>
-        </html>
-      `;
+        let emailHtml: string;
+        let emailSubject: string;
+
+        if (emailTemplate?.content) {
+          // Use dynamic template from database
+          emailHtml = replacePlaceholders(emailTemplate.content);
+          emailSubject = replacePlaceholders(emailTemplate.subject || `${barbershopName} - Confirmação de Agendamento`);
+          console.log("Using dynamic email template from database");
+        } else {
+          // Fallback to default template
+          console.log("No custom template found, using default template");
+          emailSubject = `${barbershopName} - Confirmação de Agendamento`;
+          emailHtml = `
+          <!DOCTYPE html>
+          <html lang="pt-BR">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
+              <tr>
+                <td align="center">
+                  <table width="500" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);">
+                    <tr>
+                      <td style="padding: 24px 32px 16px; text-align: center; border-bottom: 1px solid #e5e5e5;">
+                        <h1 style="margin: 0; font-size: 18px; font-weight: 600; color: #1a1a2e;">${barbershopName} - Confirmação de Agendamento</h1>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 24px 32px;">
+                        <table width="100%" cellpadding="0" cellspacing="0">
+                          <tr>
+                            <td style="vertical-align: top; width: 80px; padding-right: 16px;">
+                              ${barbershop?.logo_url ? `
+                              <div style="width: 72px; height: 72px; background-color: #1a1a2e; border-radius: 8px; overflow: hidden;">
+                                <img src="${barbershop.logo_url}" alt="${barbershopName}" style="width: 100%; height: 100%; object-fit: contain;" />
+                              </div>
+                              ` : `<div style="width: 72px; height: 72px; background-color: #1a1a2e; border-radius: 8px;"></div>`}
+                              <p style="margin: 8px 0 0; font-size: 11px; color: #666; text-align: center;">${barbershopName}</p>
+                            </td>
+                            <td style="vertical-align: top;">
+                              <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Cliente:</strong> ${clientName}</p>
+                              <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Serviço:</strong> ${service}</p>
+                              <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Data:</strong> ${formattedDate} ${time}</p>
+                              <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Profissional:</strong> ${professional}</p>
+                              <p style="margin: 4px 0; font-size: 14px; color: #333;"><strong>Valor:</strong> R$ ${price.toFixed(2).replace('.', ',')}</p>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 16px 32px 24px; text-align: center; border-top: 1px solid #e5e5e5;">
+                        <p style="margin: 0 0 4px; font-size: 12px; color: #888;">Enviado por ImperioApp</p>
+                        ${barbershopAddress ? `<p style="margin: 0; font-size: 11px; color: #aaa;">${barbershopAddress}</p>` : ''}
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </body>
+          </html>
+        `;
+        }
 
         const emailResponse = await resend.emails.send({
           from: "Barbearia <onboarding@resend.dev>",
           to: [clientEmail],
-          subject: `${barbershopName} - Confirmacao de Agendamento`,
+          subject: emailSubject,
           html: emailHtml,
         });
 
@@ -359,24 +396,44 @@ const handler = async (req: Request): Promise<Response> => {
     const whatsappEnabled = barbershopSettings?.whatsapp_enabled || notificationSettings.send_whatsapp;
     const whatsappConfirmationEnabled = barbershopSettings?.whatsapp_send_booking_confirmation !== false;
     
+    // Fetch WhatsApp template from notification_templates
+    const { data: whatsappTemplate } = await supabase
+      .from("notification_templates")
+      .select("content")
+      .eq("barbershop_id", barbershopId)
+      .eq("trigger_event", "booking_confirmation")
+      .eq("type", "whatsapp")
+      .eq("is_active", true)
+      .maybeSingle();
+
     if (whatsappEnabled && whatsappConfirmationEnabled && clientPhone && barbershopSlug) {
       console.log("Sending WhatsApp via n8n webhook...");
       
-      const whatsappMessage = `*${barbershopName} - Confirmacao de Agendamento*
+      let whatsappMessage: string;
 
-Ola ${clientName}
+      if (whatsappTemplate?.content) {
+        // Use dynamic template from database
+        whatsappMessage = replacePlaceholders(whatsappTemplate.content);
+        console.log("Using dynamic WhatsApp template from database");
+      } else {
+        // Fallback to default template
+        console.log("No custom WhatsApp template found, using default");
+        whatsappMessage = `*${barbershopName} - Confirmação de Agendamento*
+
+Olá ${clientName}
 
 Seu agendamento foi confirmado.
 
-Servico: ${service}
+Serviço: ${service}
 Data: ${formattedDateLong}
-Horario: ${time}
+Horário: ${time}
 Profissional: ${professional}
 Valor: R$ ${price.toFixed(2).replace('.', ',')}
 
 ${barbershopAddress ? barbershopAddress : ''}
 
 Enviado por ImperioApp`;
+      }
 
       const whatsappResult = await sendWhatsAppViaWebhook(
         barbershopId,
