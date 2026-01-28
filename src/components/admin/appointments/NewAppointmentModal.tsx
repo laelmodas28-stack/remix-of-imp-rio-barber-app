@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { format } from "date-fns";
+import { format, isToday, getHours, getMinutes } from "date-fns";
 import { sendBookingNotifications } from "@/lib/notifications/bookingNotifications";
 import { ptBR } from "date-fns/locale";
 import { Loader2, Calendar as CalendarIcon } from "lucide-react";
@@ -67,6 +67,31 @@ export function NewAppointmentModal({
     enabled: open && !!barbershopId,
   });
 
+  // Fetch existing bookings to avoid conflicts
+  const { data: existingBookings = [] } = useQuery({
+    queryKey: ["existing-bookings-admin", selectedProfessional, selectedDate],
+    queryFn: async () => {
+      if (!selectedProfessional || !selectedDate) return [];
+      
+      const { data, error } = await supabase
+        .from("bookings")
+        .select(`
+          id,
+          booking_time,
+          service:services (
+            duration_minutes
+          )
+        `)
+        .eq("professional_id", selectedProfessional)
+        .eq("booking_date", format(selectedDate, "yyyy-MM-dd"))
+        .in("status", ["pending", "confirmed"]);
+        
+      if (error) throw error;
+      return data;
+    },
+    enabled: open && !!selectedProfessional && !!selectedDate,
+  });
+
   // Fetch professionals
   const { data: professionals = [] } = useQuery({
     queryKey: ["professionals", barbershopId],
@@ -114,14 +139,82 @@ export function NewAppointmentModal({
     enabled: open && !!barbershopId,
   });
 
-  // Generate time slots
-  const timeSlots = [];
-  for (let hour = 8; hour <= 20; hour++) {
-    for (let min = 0; min < 60; min += 30) {
-      const time = `${hour.toString().padStart(2, "0")}:${min.toString().padStart(2, "0")}`;
-      timeSlots.push(time);
+  // Helper function to convert time to minutes
+  const timeToMinutes = (time: string): number => {
+    const [hours, minutes] = time.split(':').map(Number);
+    return hours * 60 + minutes;
+  };
+
+  // Get selected service data for duration
+  const selectedServiceData = services.find(s => s.id === selectedService);
+  const serviceDuration = selectedServiceData?.duration_minutes || 30;
+
+  // Generate time slots with conflict detection
+  const availableTimeSlots = useMemo(() => {
+    const slots: string[] = [];
+    for (let hour = 8; hour <= 20; hour++) {
+      for (let min = 0; min < 60; min += 30) {
+        const time = `${hour.toString().padStart(2, "0")}:${min.toString().padStart(2, "0")}`;
+        slots.push(time);
+      }
     }
-  }
+
+    if (!selectedDate) return slots;
+
+    let availableSlots = [...slots];
+
+    // Filter past times if today
+    if (isToday(selectedDate)) {
+      const now = new Date();
+      const currentHour = getHours(now);
+      const currentMinute = getMinutes(now);
+
+      availableSlots = availableSlots.filter(slot => {
+        const [slotHour, slotMinute] = slot.split(':').map(Number);
+        if (slotHour > currentHour) return true;
+        if (slotHour === currentHour && slotMinute > currentMinute) return true;
+        return false;
+      });
+    }
+
+    // Filter slots that conflict with existing bookings (considering duration)
+    if (existingBookings.length && selectedProfessional) {
+      availableSlots = availableSlots.filter(slot => {
+        const slotStart = timeToMinutes(slot);
+        const slotEnd = slotStart + serviceDuration;
+
+        for (const booking of existingBookings) {
+          const bookingStart = timeToMinutes(booking.booking_time.substring(0, 5));
+          const bookingDuration = (booking.service as any)?.duration_minutes || 30;
+          const bookingEnd = bookingStart + bookingDuration;
+
+          // Conflict exists if: slotStart < bookingEnd AND slotEnd > bookingStart
+          if (slotStart < bookingEnd && slotEnd > bookingStart) {
+            return false;
+          }
+        }
+        return true;
+      });
+    }
+
+    return availableSlots;
+  }, [selectedDate, selectedProfessional, existingBookings, serviceDuration]);
+
+  // Reset time when professional, date, or service changes
+  const handleProfessionalChange = (value: string) => {
+    setSelectedProfessional(value);
+    setSelectedTime("");
+  };
+
+  const handleDateChange = (date: Date | undefined) => {
+    setSelectedDate(date);
+    setSelectedTime("");
+  };
+
+  const handleServiceChange = (value: string) => {
+    setSelectedService(value);
+    setSelectedTime("");
+  };
 
   const createBookingMutation = useMutation({
     mutationFn: async () => {
@@ -222,7 +315,7 @@ export function NewAppointmentModal({
           {/* Service */}
           <div className="space-y-2">
             <Label>Serviço *</Label>
-            <Select value={selectedService} onValueChange={setSelectedService}>
+            <Select value={selectedService} onValueChange={handleServiceChange}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o serviço" />
               </SelectTrigger>
@@ -239,7 +332,7 @@ export function NewAppointmentModal({
           {/* Professional */}
           <div className="space-y-2">
             <Label>Profissional *</Label>
-            <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
+            <Select value={selectedProfessional} onValueChange={handleProfessionalChange}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o profissional" />
               </SelectTrigger>
@@ -273,7 +366,7 @@ export function NewAppointmentModal({
                 <Calendar
                   mode="single"
                   selected={selectedDate}
-                  onSelect={setSelectedDate}
+                  onSelect={handleDateChange}
                   locale={ptBR}
                 />
               </PopoverContent>
@@ -282,13 +375,13 @@ export function NewAppointmentModal({
 
           {/* Time */}
           <div className="space-y-2">
-            <Label>Horário *</Label>
-            <Select value={selectedTime} onValueChange={setSelectedTime}>
+            <Label>Horário * {availableTimeSlots.length === 0 && selectedProfessional && selectedDate && "(Sem horários disponíveis)"}</Label>
+            <Select value={selectedTime} onValueChange={setSelectedTime} disabled={availableTimeSlots.length === 0}>
               <SelectTrigger>
-                <SelectValue placeholder="Selecione o horário" />
+                <SelectValue placeholder={availableTimeSlots.length === 0 ? "Sem horários" : "Selecione o horário"} />
               </SelectTrigger>
               <SelectContent>
-                {timeSlots.map((time) => (
+                {availableTimeSlots.map((time) => (
                   <SelectItem key={time} value={time}>
                     {time}
                   </SelectItem>
