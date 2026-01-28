@@ -214,6 +214,31 @@ const Booking = () => {
     if (!service || !professional) return;
 
     try {
+      // First, ensure the user has a profile record (required for booking foreign key)
+      const { data: existingProfile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (!existingProfile) {
+        // Create a profile for this user
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .insert({
+            id: user.id,
+            full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || "Cliente",
+            email: user.email,
+            phone: user.user_metadata?.phone || null,
+          });
+
+        if (profileError) {
+          console.error("Erro ao criar perfil:", profileError);
+          toast.error("Erro ao preparar cadastro. Tente novamente.");
+          return;
+        }
+      }
+
       const { data: booking, error } = await supabase.from("bookings").insert({
         client_id: user.id,
         service_id: selectedService,
