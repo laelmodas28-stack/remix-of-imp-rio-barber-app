@@ -22,8 +22,11 @@ import {
   MessageSquare,
   Building2,
   Headphones,
-  ExternalLink
+  ExternalLink,
+  AlertTriangle,
+  Lock
 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Dialog,
   DialogContent,
@@ -62,7 +65,7 @@ const PlatformPlans = () => {
   const { barbershop } = useBarbershop();
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('MONTHLY');
   const { plans, isLoading, createCheckout } = usePlatformPlans(billingPeriod);
-  const { subscription, isLoading: trialLoading } = useTrialStatus(barbershop?.id);
+  const { subscription, trialExpired, hasActiveSubscription, isLoading: trialLoading } = useTrialStatus(barbershop?.id);
   
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
@@ -138,16 +141,37 @@ const PlatformPlans = () => {
   const isPlanLoading = (planId: string) => 
     createCheckout.isPending && selectedPlanId === planId;
 
+  // Check if system is blocked (trial expired without active subscription)
+  const isSystemBlocked = trialExpired && !hasActiveSubscription;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       <Header />
       
       <div className="container mx-auto px-4 py-12">
+        {/* Trial Expired Alert - System Blocked */}
+        {isSystemBlocked && (
+          <Alert variant="destructive" className="mb-8 border-destructive/50 bg-destructive/10">
+            <AlertTriangle className="h-5 w-5" />
+            <AlertTitle className="flex items-center gap-2 text-lg">
+              <Lock className="w-5 h-5" />
+              Sistema Bloqueado - Período de Teste Encerrado
+            </AlertTitle>
+            <AlertDescription className="mt-2 text-base">
+              Seu período de teste de <strong>7 dias</strong> terminou. Para continuar usando todas as funcionalidades 
+              do sistema, escolha um plano abaixo e realize o pagamento. O acesso será liberado automaticamente 
+              após a confirmação bancária.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Hero Section */}
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-full mb-6">
             <Rocket className="w-5 h-5 text-primary" />
-            <span className="text-sm font-medium text-primary">Desbloqueie todo o potencial</span>
+            <span className="text-sm font-medium text-primary">
+              {isSystemBlocked ? 'Assine agora para desbloquear' : 'Desbloqueie todo o potencial'}
+            </span>
           </div>
           
           <h1 className="text-4xl md:text-5xl font-bold mb-4">

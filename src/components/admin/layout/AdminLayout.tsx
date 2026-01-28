@@ -3,7 +3,6 @@ import { Outlet, Navigate, useLocation } from "react-router-dom";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminHeader } from "./AdminHeader";
 import { AdminTrialBanner } from "./AdminTrialBanner";
-import { TrialExpiredModal } from "@/components/TrialExpiredModal";
 import { useBarbershopContext } from "@/hooks/useBarbershopContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
@@ -75,8 +74,11 @@ export function AdminLayout() {
     return <Navigate to={`${adminBasePath}/agenda/appointments`} replace />;
   }
 
-  // Check if trial expired and no active subscription - block access
-  const isSystemBlocked = trialExpired && !hasActiveSubscription;
+  // CRITICAL: If trial expired and no active subscription - redirect to plans page
+  // This blocks ALL admin access until payment is confirmed
+  if (trialExpired && !hasActiveSubscription) {
+    return <Navigate to={`/b/${barbershop?.slug}/plans`} replace />;
+  }
 
   return (
     <SidebarProvider>
@@ -85,13 +87,11 @@ export function AdminLayout() {
         <SidebarInset className="flex flex-col flex-1 overflow-hidden">
           <AdminTrialBanner />
           <AdminHeader />
-          <main className={`flex-1 overflow-auto p-6 ${isSystemBlocked ? 'pointer-events-none opacity-50' : ''}`}>
+          <main className="flex-1 overflow-auto p-6">
             <Outlet />
           </main>
         </SidebarInset>
       </div>
-      {/* Trial Expired Modal - blocks all interaction */}
-      <TrialExpiredModal />
     </SidebarProvider>
   );
 }
