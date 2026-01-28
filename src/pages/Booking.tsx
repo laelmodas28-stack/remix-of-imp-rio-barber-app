@@ -86,12 +86,29 @@ const Booking = () => {
   // Time blocks - table doesn't exist yet, using empty array
   const timeBlocks: { start_time: string; end_time: string }[] = [];
 
+  // Redirect to auth if not logged in
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/auth");
     }
   }, [user, authLoading, navigate]);
 
+  // Reset time when professional or date changes
+  useEffect(() => {
+    setSelectedTime("");
+  }, [selectedProfessional, selectedDate]);
+
+  // Helper function to convert time to minutes
+  const timeToMinutes = (time: string): number => {
+    const [hours, minutes] = time.split(':').map(Number);
+    return hours * 60 + minutes;
+  };
+
+  // Get selected service data for duration
+  const selectedServiceData = services?.find(s => s.id === selectedService);
+  const serviceDuration = selectedServiceData?.duration_minutes || 30;
+
+  // Early returns AFTER all hooks
   if (authLoading || isBarbershopLoading || !barbershop) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -122,21 +139,6 @@ const Booking = () => {
   };
 
   const timeSlots = generateTimeSlots();
-
-  // Resetar horário selecionado quando mudar profissional ou data
-  useEffect(() => {
-    setSelectedTime("");
-  }, [selectedProfessional, selectedDate]);
-
-  // Helper function to convert time to minutes
-  const timeToMinutes = (time: string): number => {
-    const [hours, minutes] = time.split(':').map(Number);
-    return hours * 60 + minutes;
-  };
-
-  // Get selected service data for duration
-  const selectedServiceData = services?.find(s => s.id === selectedService);
-  const serviceDuration = selectedServiceData?.duration_minutes || 30;
 
   // Filtrar horários passados, ocupados e bloqueados
   const getAvailableTimeSlots = () => {
