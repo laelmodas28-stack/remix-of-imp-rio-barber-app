@@ -914,15 +914,24 @@ function TemplateCard({
         </div>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-muted-foreground line-clamp-2 mb-4">{template.content}</p>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={onPreview}>
-            <Eye className="h-4 w-4 mr-1" />
-            Prévia
-          </Button>
-          {/* Apenas WhatsApp pode ser editado - Email é protegido para evitar quebra do HTML */}
-          {template.type === "whatsapp" && (
-            <>
+        {template.type === "email" ? (
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Template HTML configurado
+            </p>
+            <Button variant="outline" size="sm" onClick={onPreview}>
+              <Eye className="h-4 w-4 mr-2" />
+              Visualizar Template
+            </Button>
+          </div>
+        ) : (
+          <>
+            <p className="text-sm text-muted-foreground line-clamp-2 mb-4">{template.content}</p>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={onPreview}>
+                <Eye className="h-4 w-4 mr-1" />
+                Prévia
+              </Button>
               <Button variant="outline" size="sm" onClick={onEdit}>
                 <Pencil className="h-4 w-4 mr-1" />
                 Editar
@@ -931,13 +940,8 @@ function TemplateCard({
                 <Trash2 className="h-4 w-4 mr-1" />
                 Excluir
               </Button>
-            </>
-          )}
-        </div>
-        {template.type === "email" && (
-          <p className="text-xs text-muted-foreground mt-2">
-            Templates de email são gerenciados pelo sistema para garantir a formatação correta.
-          </p>
+            </div>
+          </>
         )}
       </CardContent>
     </Card>
