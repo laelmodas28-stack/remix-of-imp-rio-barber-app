@@ -165,9 +165,36 @@ Caso não possa comparecer, pedimos que cancele com antecedência.
 _Enviado por ImperioApp_`;
 }
 
+// Helper to get current time in Brasilia timezone (America/Sao_Paulo, UTC-3)
+function getBrasiliaTime(): Date {
+  const now = new Date();
+  // Convert to Brasilia time (UTC-3)
+  const brasiliaOffset = -3 * 60; // -3 hours in minutes
+  const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+  return new Date(utcTime + (brasiliaOffset * 60000));
+}
+
+// Format date as YYYY-MM-DD in Brasilia timezone
+function getBrasiliaDateString(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// Format time as HH:MM:SS in Brasilia timezone
+function getBrasiliaTimeString(date: Date): string {
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  return `${hours}:${minutes}:${seconds}`;
+}
+
 const handler = async (req: Request): Promise<Response> => {
   const startTime = Date.now();
+  const nowBrasilia = getBrasiliaTime();
   console.log(`[${new Date().toISOString()}] 🚀 Starting booking reminder check...`);
+  console.log(`[CHECK] Brasilia time: ${getBrasiliaDateString(nowBrasilia)} ${getBrasiliaTimeString(nowBrasilia)}`);
 
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -178,9 +205,8 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get current time in São Paulo timezone (Brazil)
-    const now = new Date();
-    console.log(`[CHECK] Current UTC time: ${now.toISOString()}`);
+    // Use Brasilia time for all calculations
+    console.log(`[CHECK] Using Brasilia timezone (America/Sao_Paulo, UTC-3)`);
 
     // Fetch all barbershop settings with reminders enabled
     const { data: allSettings, error: settingsError } = await supabase
@@ -208,20 +234,21 @@ const handler = async (req: Request): Promise<Response> => {
         const barbershopAddress = settings.barbershop?.address || null;
         const instanceName = settings.barbershop?.slug || `barbershop-${barbershopId.substring(0, 8)}`;
 
-        // Calculate the target time window for reminders (1 hour ahead by default)
-        const targetTime = new Date(now.getTime() + reminderHours * 60 * 60 * 1000);
+        // Calculate target time in Brasilia time (current Brasilia time + reminder hours)
+        const targetBrasilia = new Date(nowBrasilia.getTime() + reminderHours * 60 * 60 * 1000);
         
         // Create a 10-minute window around target time for reliability
         const windowStartMinutes = 5;
         const windowEndMinutes = 5;
-        const windowStart = new Date(targetTime.getTime() - windowStartMinutes * 60 * 1000);
-        const windowEnd = new Date(targetTime.getTime() + windowEndMinutes * 60 * 1000);
+        const windowStartBrasilia = new Date(targetBrasilia.getTime() - windowStartMinutes * 60 * 1000);
+        const windowEndBrasilia = new Date(targetBrasilia.getTime() + windowEndMinutes * 60 * 1000);
 
-        console.log(`[${barbershopId.substring(0, 8)}] Checking window: ${windowStart.toISOString()} - ${windowEnd.toISOString()}`);
+        console.log(`[${barbershopId.substring(0, 8)}] Checking Brasilia window: ${getBrasiliaDateString(windowStartBrasilia)} ${getBrasiliaTimeString(windowStartBrasilia)} - ${getBrasiliaTimeString(windowEndBrasilia)}`);
 
-        // Get today's and tomorrow's dates for query
-        const todayDate = now.toISOString().split('T')[0];
-        const tomorrowDate = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        // Get today's and tomorrow's dates in Brasilia timezone
+        const todayDate = getBrasiliaDateString(nowBrasilia);
+        const tomorrowBrasilia = new Date(nowBrasilia.getTime() + 24 * 60 * 60 * 1000);
+        const tomorrowDate = getBrasiliaDateString(tomorrowBrasilia);
 
         // Fetch bookings that could be in the reminder window
         const { data: bookings, error: bookingsError } = await supabase
@@ -246,11 +273,16 @@ const handler = async (req: Request): Promise<Response> => {
           continue;
         }
 
-        // Filter bookings within the exact time window
+        // Filter bookings within the exact time window (using Brasilia time)
         const relevantBookings = (bookings || []).filter(booking => {
           try {
-            const bookingDateTime = new Date(`${booking.booking_date}T${booking.booking_time}`);
-            return bookingDateTime >= windowStart && bookingDateTime <= windowEnd;
+            // Parse booking date/time as Brasilia time (the database stores local time)
+            const [year, month, day] = booking.booking_date.split('-').map(Number);
+            const [hours, minutes] = booking.booking_time.split(':').map(Number);
+            const bookingBrasilia = new Date(year, month - 1, day, hours, minutes, 0);
+            
+            // Compare with window boundaries
+            return bookingBrasilia >= windowStartBrasilia && bookingBrasilia <= windowEndBrasilia;
           } catch {
             return false;
           }
