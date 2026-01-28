@@ -34,18 +34,19 @@ const handler = async (req: Request): Promise<Response> => {
     const notifications: any[] = [];
 
     for (const settings of allSettings || []) {
-      const reminderHours = settings.reminder_hours_before || 2;
+      // Default to 1 hour before if not configured
+      const reminderHours = settings.reminder_hours_before || 1;
       const barbershopId = settings.barbershop_id;
       const barbershopName = settings.barbershop?.name || "Barbearia";
       const instanceName = settings.barbershop?.slug || `barbershop-${barbershopId.substring(0, 8)}`;
       
       // Calculate the target time window for reminders
       const now = new Date();
-      const targetTime = new Date(now.getTime() + reminderHours * 60 * 60000);
+      const targetTime = new Date(now.getTime() + reminderHours * 60 * 60 * 1000);
       
-      // Create time window (15 minutes before and after target)
-      const windowStart = new Date(targetTime.getTime() - 15 * 60000);
-      const windowEnd = new Date(targetTime.getTime() + 15 * 60000);
+      // Create time window (5 minutes before and after target for cron precision)
+      const windowStart = new Date(targetTime.getTime() - 5 * 60 * 1000);
+      const windowEnd = new Date(targetTime.getTime() + 5 * 60 * 1000);
 
       console.log(`Checking reminders for barbershop ${barbershopId}, target: ${targetTime.toISOString()}`);
 
