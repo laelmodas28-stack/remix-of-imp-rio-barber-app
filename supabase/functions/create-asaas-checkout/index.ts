@@ -8,22 +8,13 @@ const corsHeaders = {
 
 const ASAAS_API_URL = 'https://api.asaas.com/v3';
 
-interface AsaasCustomer {
+interface AsaasPaymentLink {
   id: string;
+  url: string;
   name: string;
-  email: string;
-  cpfCnpj?: string;
-}
-
-interface AsaasPayment {
-  id: string;
-  invoiceUrl: string;
-  bankSlipUrl?: string;
-  status: string;
   value: number;
-  netValue: number;
   billingType: string;
-  dueDate: string;
+  active: boolean;
 }
 
 serve(async (req) => {
@@ -110,120 +101,63 @@ serve(async (req) => {
       );
     }
 
-    // Get owner profile info
-    const { data: ownerProfile } = await supabase
-      .from('profiles')
-      .select('full_name, email, phone')
-      .eq('id', user.id)
-      .single();
-
-    const ownerEmail = user.email || '';
-    const ownerName = ownerProfile?.full_name || barbershop.name || 'Cliente';
-    const ownerPhone = ownerProfile?.phone?.replace(/\D/g, '') || '';
-
-    // Check for existing ASAAS customer or create new one
-    let asaasCustomerId: string | null = null;
-
-    // Check if barbershop has existing subscription with ASAAS customer
-    const { data: existingSub } = await supabase
-      .from('barbershop_subscriptions')
-      .select('asaas_customer_id')
-      .eq('barbershop_id', barbershopId)
-      .not('asaas_customer_id', 'is', null)
-      .order('created_at', { ascending: false })
-      .limit(1);
-
-    if (existingSub && existingSub.length > 0 && existingSub[0].asaas_customer_id) {
-      asaasCustomerId = existingSub[0].asaas_customer_id;
-      console.log('Using existing ASAAS customer:', asaasCustomerId);
-    } else {
-      // Create new customer in ASAAS
-      console.log('Creating new ASAAS customer...');
-      
-      const customerPayload = {
-        name: ownerName,
-        email: ownerEmail,
-        phone: ownerPhone || undefined,
-        externalReference: barbershopId,
-        notificationDisabled: false,
-      };
-
-      const customerResponse = await fetch(`${ASAAS_API_URL}/customers`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'access_token': ASAAS_API_KEY,
-        },
-        body: JSON.stringify(customerPayload),
-      });
-
-      if (!customerResponse.ok) {
-        const errorData = await customerResponse.text();
-        console.error('ASAAS customer creation failed:', errorData);
-        return new Response(
-          JSON.stringify({ error: 'Erro ao criar cliente no ASAAS' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      const customer: AsaasCustomer = await customerResponse.json();
-      asaasCustomerId = customer.id;
-      console.log('Created ASAAS customer:', asaasCustomerId);
-    }
-
     // Calculate due date (3 days from now)
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + 3);
     const dueDateStr = dueDate.toISOString().split('T')[0];
 
-    // Create payment in ASAAS
-    const paymentPayload = {
-      customer: asaasCustomerId,
-      billingType: 'UNDEFINED', // Allows PIX, credit card, boleto
+    // Build billing period label
+    let periodLabel = 'Mensal';
+    if (plan.billing_cycle === 'QUARTERLY') periodLabel = 'Trimestral';
+    if (plan.billing_cycle === 'YEARLY') periodLabel = 'Anual';
+
+    // Create payment link in ASAAS (customers enter their own CPF)
+    const paymentLinkPayload = {
+      name: `${plan.name} ${periodLabel} - ${barbershop.name}`,
+      description: `Assinatura ${plan.name} (${periodLabel}) para ${barbershop.name}`,
       value: plan.price,
-      dueDate: dueDateStr,
-      description: `Assinatura ${plan.name} - ${barbershop.name}`,
-      externalReference: JSON.stringify({
-        barbershopId,
-        planId,
-        userId: user.id,
-      }),
+      billingType: 'UNDEFINED', // Allows PIX, credit card, boleto
+      chargeType: 'DETACHED', // One-time payment
+      dueDateLimitDays: 3,
+      maxInstallmentCount: plan.billing_cycle === 'YEARLY' ? 12 : (plan.billing_cycle === 'QUARTERLY' ? 3 : 1),
+      notificationEnabled: true,
+      // externalReference is limited to 64 chars for payment links
+      externalReference: barbershopId.substring(0, 64),
     };
 
-    console.log('Creating ASAAS payment:', paymentPayload);
+    console.log('Creating ASAAS payment link:', paymentLinkPayload);
 
-    const paymentResponse = await fetch(`${ASAAS_API_URL}/payments`, {
+    const paymentLinkResponse = await fetch(`${ASAAS_API_URL}/paymentLinks`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'access_token': ASAAS_API_KEY,
       },
-      body: JSON.stringify(paymentPayload),
+      body: JSON.stringify(paymentLinkPayload),
     });
 
-    if (!paymentResponse.ok) {
-      const errorData = await paymentResponse.text();
-      console.error('ASAAS payment creation failed:', errorData);
+    if (!paymentLinkResponse.ok) {
+      const errorData = await paymentLinkResponse.text();
+      console.error('ASAAS payment link creation failed:', errorData);
       return new Response(
-        JSON.stringify({ error: 'Erro ao criar cobrança no ASAAS' }),
+        JSON.stringify({ error: 'Erro ao criar link de pagamento no ASAAS', details: errorData }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const payment: AsaasPayment = await paymentResponse.json();
-    console.log('Created ASAAS payment:', payment.id, 'Invoice URL:', payment.invoiceUrl);
+    const paymentLink: AsaasPaymentLink = await paymentLinkResponse.json();
+    console.log('Created ASAAS payment link:', paymentLink.id, 'URL:', paymentLink.url);
 
     // Create or update barbershop subscription record
     const subscriptionData = {
       barbershop_id: barbershopId,
       plan_type: plan.name.toLowerCase(),
       status: 'pending_payment',
-      asaas_customer_id: asaasCustomerId,
-      asaas_payment_id: payment.id,
-      asaas_payment_link: payment.invoiceUrl,
+      asaas_payment_id: paymentLink.id,
+      asaas_payment_link: paymentLink.url,
       payment_value: plan.price,
       created_by: user.id,
-      notes: `Aguardando pagamento - Plano ${plan.name}`,
+      notes: `Aguardando pagamento - Plano ${plan.name} (${periodLabel})`,
     };
 
     const { error: subscriptionError } = await supabase
@@ -232,15 +166,15 @@ serve(async (req) => {
 
     if (subscriptionError) {
       console.error('Error creating subscription record:', subscriptionError);
-      // Don't fail - payment was created, just log the error
+      // Don't fail - payment link was created, just log the error
     }
 
     return new Response(
       JSON.stringify({
         success: true,
-        paymentId: payment.id,
-        invoiceUrl: payment.invoiceUrl,
-        status: payment.status,
+        paymentId: paymentLink.id,
+        invoiceUrl: paymentLink.url,
+        status: 'pending',
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
