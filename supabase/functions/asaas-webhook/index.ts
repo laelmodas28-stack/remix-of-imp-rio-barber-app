@@ -172,7 +172,7 @@ serve(async (req) => {
           .insert({
             user_id: subscription.barbershop.owner_id,
             barbershop_id: subscription.barbershop_id,
-            type: 'subscription',
+            type: 'booking',
             title: '🎉 Assinatura Ativada!',
             message: `Seu pagamento foi confirmado. Sua assinatura ${planName.toUpperCase()} está ativa até ${new Date(updateData.subscription_ends_at as string).toLocaleDateString('pt-BR')}.`,
           });
