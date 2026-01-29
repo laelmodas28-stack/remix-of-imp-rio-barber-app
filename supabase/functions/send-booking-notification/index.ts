@@ -1,9 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "https://esm.sh/resend@4.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,6 +10,7 @@ const corsHeaders = {
 // SYSTEM RULE: Each webhook handles its specific channel
 // - Email webhook URL → sends email templates ONLY
 // - WhatsApp webhook URL → sends WhatsApp templates ONLY
+const N8N_EMAIL_WEBHOOK_URL = Deno.env.get("N8N_WEBHOOK_URL") || "";
 const N8N_WHATSAPP_WEBHOOK_URL = Deno.env.get("N8N_WHATSAPP_WEBHOOK_URL") || "";
 
 // Helper function to format phone number for WhatsApp
@@ -322,102 +320,139 @@ const handler = async (req: Request): Promise<Response> => {
         .replace(/\{\{barbearia_logo_url\}\}/g, barbershop?.logo_url || '');
     };
 
-    // Send email to client
+    // Send email to client via n8n webhook
+    // SYSTEM RULE: Email webhook URL → sends email templates ONLY
     if (notificationSettings.send_to_client && clientEmail) {
       try {
-        let emailHtml: string;
-        let emailSubject: string;
-
-        if (emailTemplate?.content) {
-          // Use dynamic template from database
-          emailHtml = replacePlaceholders(emailTemplate.content);
-          emailSubject = replacePlaceholders(emailTemplate.subject || `${barbershopName} - Confirmação de Agendamento`);
-          console.log("Using dynamic email template from database");
+        if (!N8N_EMAIL_WEBHOOK_URL) {
+          console.error("N8N email webhook URL not configured");
+          await logNotification("email", clientEmail, "failed", JSON.stringify({ service, date: formattedDate }), "N8N email webhook not configured");
         } else {
-          // Fallback to default template matching new standard
-          console.log("No custom template found, using default template");
-          emailSubject = `${barbershopName} - Confirmação de Agendamento`;
-          emailHtml = `
-          <!DOCTYPE html>
-          <html lang="pt-BR">
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          </head>
-          <body style="margin: 0; padding: 0; background-color: #f0f0f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f0f0f0; padding: 40px 20px;">
-              <tr>
-                <td align="center">
-                  <table width="520" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); overflow: hidden;">
-                    <!-- Header -->
-                    <tr>
-                      <td style="background-color: #1a1a2e; padding: 20px 32px; text-align: center;">
-                        <h1 style="margin: 0; font-size: 18px; font-weight: 600; color: #ffffff;">${barbershopName} - Confirmação de Agendamento</h1>
-                      </td>
-                    </tr>
-                    <!-- Greeting -->
-                    <tr>
-                      <td style="padding: 24px 32px 8px;">
-                        <p style="margin: 0; font-size: 15px; color: #333;">Olá, <strong>${clientName}</strong>!</p>
-                        <p style="margin: 8px 0 0; font-size: 14px; color: #666;">Seu agendamento foi confirmado com sucesso.</p>
-                      </td>
-                    </tr>
-                    <!-- Service Card -->
-                    <tr>
-                      <td style="padding: 16px 32px 24px;">
-                        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f8f8; border-radius: 8px; border: 1px solid #e5e5e5;">
-                          <tr>
-                            <td style="padding: 16px;">
-                              <table width="100%" cellpadding="0" cellspacing="0">
-                                <tr>
-                                  <!-- Logo Column -->
-                                  <td style="vertical-align: top; width: 90px; padding-right: 16px; text-align: center;">
-                                    ${barbershop?.logo_url ? `
-                                    <div style="width: 70px; height: 70px; background-color: #1a1a2e; border-radius: 50%; overflow: hidden; margin: 0 auto;">
-                                      <img src="${barbershop.logo_url}" alt="${barbershopName}" style="width: 100%; height: 100%; object-fit: contain;" />
-                                    </div>
-                                    ` : `<div style="width: 70px; height: 70px; background-color: #1a1a2e; border-radius: 50%; margin: 0 auto;"></div>`}
-                                    <p style="margin: 8px 0 0; font-size: 10px; font-weight: 600; color: #1a1a2e; text-transform: uppercase;">${barbershopName}</p>
-                                  </td>
-                                  <!-- Details Column -->
-                                  <td style="vertical-align: top;">
-                                    <p style="margin: 0 0 6px; font-size: 14px; color: #333;"><strong>Serviço:</strong> ${service}</p>
-                                    <p style="margin: 0 0 6px; font-size: 14px; color: #333;"><strong>Data:</strong> ${formattedDate} ${time}</p>
-                                    <p style="margin: 0 0 6px; font-size: 14px; color: #333;"><strong>Profissional:</strong> ${professional}</p>
-                                    <p style="margin: 0; font-size: 14px; color: #333;"><strong>Valor:</strong> R$ ${price.toFixed(2).replace('.', ',')}</p>
-                                  </td>
-                                </tr>
-                              </table>
-                            </td>
-                          </tr>
-                        </table>
-                      </td>
-                    </tr>
-                    <!-- Footer -->
-                    <tr>
-                      <td style="padding: 16px 32px 24px; text-align: center; border-top: 1px solid #e5e5e5;">
-                        <p style="margin: 0 0 4px; font-size: 12px; color: #888;">Enviado por ImperioApp</p>
-                        ${barbershopAddress ? `<p style="margin: 0; font-size: 11px; color: #aaa;">${barbershopAddress}</p>` : ''}
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
-            </table>
-          </body>
-          </html>
-        `;
+          let emailHtml: string;
+          let emailSubject: string;
+
+          if (emailTemplate?.content) {
+            // Use dynamic template from database
+            emailHtml = replacePlaceholders(emailTemplate.content);
+            emailSubject = replacePlaceholders(emailTemplate.subject || `${barbershopName} - Confirmação de Agendamento`);
+            console.log("Using dynamic email template from database");
+          } else {
+            // Fallback to default template matching new standard
+            console.log("No custom template found, using default template");
+            emailSubject = `${barbershopName} - Confirmação de Agendamento`;
+            const formattedPriceValue = price != null ? `R$ ${price.toFixed(2).replace('.', ',')}` : '';
+            emailHtml = `
+            <!DOCTYPE html>
+            <html lang="pt-BR">
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            </head>
+            <body style="margin: 0; padding: 0; background-color: #f0f0f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f0f0f0; padding: 40px 20px;">
+                <tr>
+                  <td align="center">
+                    <table width="520" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); overflow: hidden;">
+                      <!-- Header -->
+                      <tr>
+                        <td style="background-color: #1a1a2e; padding: 20px 32px; text-align: center;">
+                          <h1 style="margin: 0; font-size: 18px; font-weight: 600; color: #ffffff;">${barbershopName} - Confirmação de Agendamento</h1>
+                        </td>
+                      </tr>
+                      <!-- Greeting -->
+                      <tr>
+                        <td style="padding: 24px 32px 8px;">
+                          <p style="margin: 0; font-size: 15px; color: #333;">Olá, <strong>${clientName}</strong>!</p>
+                          <p style="margin: 8px 0 0; font-size: 14px; color: #666;">Seu agendamento foi confirmado com sucesso.</p>
+                        </td>
+                      </tr>
+                      <!-- Service Card -->
+                      <tr>
+                        <td style="padding: 16px 32px 24px;">
+                          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f8f8; border-radius: 8px; border: 1px solid #e5e5e5;">
+                            <tr>
+                              <td style="padding: 16px;">
+                                <table width="100%" cellpadding="0" cellspacing="0">
+                                  <tr>
+                                    <!-- Logo Column -->
+                                    <td style="vertical-align: top; width: 90px; padding-right: 16px; text-align: center;">
+                                      ${barbershop?.logo_url ? `
+                                      <div style="width: 70px; height: 70px; background-color: #1a1a2e; border-radius: 50%; overflow: hidden; margin: 0 auto;">
+                                        <img src="${barbershop.logo_url}" alt="${barbershopName}" style="width: 100%; height: 100%; object-fit: contain;" />
+                                      </div>
+                                      ` : `<div style="width: 70px; height: 70px; background-color: #1a1a2e; border-radius: 50%; margin: 0 auto;"></div>`}
+                                      <p style="margin: 8px 0 0; font-size: 10px; font-weight: 600; color: #1a1a2e; text-transform: uppercase;">${barbershopName}</p>
+                                    </td>
+                                    <!-- Details Column -->
+                                    <td style="vertical-align: top;">
+                                      <p style="margin: 0 0 6px; font-size: 14px; color: #333;"><strong>Serviço:</strong> ${service}</p>
+                                      <p style="margin: 0 0 6px; font-size: 14px; color: #333;"><strong>Data:</strong> ${formattedDate} ${time}</p>
+                                      <p style="margin: 0 0 6px; font-size: 14px; color: #333;"><strong>Profissional:</strong> ${professional}</p>
+                                      <p style="margin: 0; font-size: 14px; color: #333;"><strong>Valor:</strong> ${formattedPriceValue}</p>
+                                    </td>
+                                  </tr>
+                                </table>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                      <!-- Footer -->
+                      <tr>
+                        <td style="padding: 16px 32px 24px; text-align: center; border-top: 1px solid #e5e5e5;">
+                          <p style="margin: 0 0 4px; font-size: 12px; color: #888;">Enviado por ImperioApp</p>
+                          ${barbershopAddress ? `<p style="margin: 0; font-size: 11px; color: #aaa;">${barbershopAddress}</p>` : ''}
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </body>
+            </html>
+          `;
+          }
+
+          // Format price for payload
+          const formattedServicePrice = price != null ? `R$ ${price.toFixed(2).replace('.', ',')}` : '';
+
+          // Build email payload for n8n webhook
+          const emailPayload = {
+            channel: 'email',
+            barbershopId,
+            instanceName: barbershopSlug || '',
+            client_name: clientName,
+            client_email: clientEmail,
+            service_name: service,
+            professional_name: professional,
+            booking_date: formattedDate,
+            booking_time: time,
+            service_price: formattedServicePrice,
+            barbershop_name: barbershopName,
+            barbershop_address: barbershopAddress || '',
+            barbershop_logo_url: barbershop?.logo_url || '',
+            email_subject: emailSubject,
+            email_html: emailHtml,
+            use_custom_html: true,
+            timestamp: new Date().toISOString(),
+          };
+
+          console.log("[EMAIL ONLY] Sending to N8N_WEBHOOK_URL");
+          const emailResponse = await fetch(N8N_EMAIL_WEBHOOK_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(emailPayload),
+          });
+
+          if (!emailResponse.ok) {
+            const errorText = await emailResponse.text();
+            console.error("Email webhook error:", emailResponse.status, errorText);
+            await logNotification("email", clientEmail, "failed", JSON.stringify({ service, date: formattedDate }), `Webhook error: ${emailResponse.status}`);
+          } else {
+            console.log("Email sent via n8n webhook to:", clientEmail);
+            await logNotification("email", clientEmail, "sent", JSON.stringify({ subject: emailSubject, service, date: formattedDate }));
+          }
         }
-
-        const emailResponse = await resend.emails.send({
-          from: "Barbearia <onboarding@resend.dev>",
-          to: [clientEmail],
-          subject: emailSubject,
-          html: emailHtml,
-        });
-
-        console.log("Email sent to client:", clientEmail);
-        await logNotification("email", clientEmail, "sent", JSON.stringify({ subject: "Confirmacao de Agendamento", service, date: formattedDate }));
       } catch (emailError: any) {
         console.error("Email error:", emailError.message);
         await logNotification("email", clientEmail, "failed", JSON.stringify({ service, date: formattedDate }), emailError.message);
@@ -507,57 +542,90 @@ Enviado por ImperioApp`;
       }
       
       try {
-        const adminEmailHtml = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: #667eea; color: white; padding: 20px; text-align: center; }
-            .content { background: #f9f9f9; padding: 20px; }
-            .details { background: white; padding: 15px; margin: 10px 0; border-left: 4px solid #667eea; }
-            .ai-message { background: #e8eaf6; padding: 15px; border-radius: 5px; margin: 10px 0; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h2>🔔 Novo Agendamento Recebido</h2>
-            </div>
-            <div class="content">
-              ${notificationSettings.ai_enabled ? `
-                <div class="ai-message">
-                  <p>${barberMessage}</p>
+        if (!N8N_EMAIL_WEBHOOK_URL) {
+          console.error("N8N email webhook URL not configured for admin email");
+        } else {
+          const formattedPriceAdmin = price != null ? `R$ ${price.toFixed(2).replace('.', ',')}` : '';
+          const adminEmailHtml = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background: #1a1a2e; color: white; padding: 20px; text-align: center; }
+              .content { background: #f9f9f9; padding: 20px; }
+              .details { background: white; padding: 15px; margin: 10px 0; border-left: 4px solid #1a1a2e; }
+              .ai-message { background: #e8eaf6; padding: 15px; border-radius: 5px; margin: 10px 0; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h2>Novo Agendamento Recebido</h2>
+              </div>
+              <div class="content">
+                ${notificationSettings.ai_enabled ? `
+                  <div class="ai-message">
+                    <p>${barberMessage}</p>
+                  </div>
+                ` : ''}
+                <div class="details">
+                  <p><strong>Cliente:</strong> ${clientName}</p>
+                  <p><strong>Email:</strong> ${clientEmail || 'Nao informado'}</p>
+                  ${clientPhone ? `<p><strong>Telefone:</strong> ${clientPhone}</p>` : ''}
+                  <p><strong>Data:</strong> ${formattedDate}</p>
+                  <p><strong>Horario:</strong> ${time}</p>
+                  <p><strong>Servico:</strong> ${service}</p>
+                  <p><strong>Profissional:</strong> ${professional}</p>
+                  <p><strong>Valor:</strong> ${formattedPriceAdmin}</p>
                 </div>
-              ` : ''}
-              <div class="details">
-                <p><strong>Cliente:</strong> ${clientName}</p>
-                <p><strong>Email:</strong> ${clientEmail || 'Não informado'}</p>
-                ${clientPhone ? `<p><strong>Telefone:</strong> ${clientPhone}</p>` : ''}
-                <p><strong>Data:</strong> ${formattedDate}</p>
-                <p><strong>Horário:</strong> ${time}</p>
-                <p><strong>Serviço:</strong> ${service}</p>
-                <p><strong>Profissional:</strong> ${professional}</p>
-                <p><strong>Valor:</strong> R$ ${price.toFixed(2)}</p>
               </div>
             </div>
-          </div>
-        </body>
-        </html>
-      `;
+          </body>
+          </html>
+        `;
 
-        await resend.emails.send({
-          from: "Notificações <onboarding@resend.dev>",
-          to: [notificationSettings.admin_email],
-          subject: `Novo Agendamento - ${clientName} - ${formattedDate}`,
-          html: adminEmailHtml,
-        });
+          const adminEmailSubject = `Novo Agendamento - ${clientName} - ${formattedDate}`;
 
-        console.log("✅ Email sent to admin:", notificationSettings.admin_email);
+          // Build admin email payload for n8n webhook
+          const adminEmailPayload = {
+            channel: 'email',
+            barbershopId,
+            instanceName: barbershopSlug || '',
+            client_name: clientName,
+            client_email: notificationSettings.admin_email,
+            service_name: service,
+            professional_name: professional,
+            booking_date: formattedDate,
+            booking_time: time,
+            service_price: formattedPriceAdmin,
+            barbershop_name: barbershopName,
+            barbershop_address: barbershopAddress || '',
+            email_subject: adminEmailSubject,
+            email_html: adminEmailHtml,
+            use_custom_html: true,
+            is_admin_notification: true,
+            timestamp: new Date().toISOString(),
+          };
+
+          console.log("[EMAIL ONLY] Sending admin email to N8N_WEBHOOK_URL");
+          const adminEmailResponse = await fetch(N8N_EMAIL_WEBHOOK_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(adminEmailPayload),
+          });
+
+          if (!adminEmailResponse.ok) {
+            const errorText = await adminEmailResponse.text();
+            console.error("Admin email webhook error:", adminEmailResponse.status, errorText);
+          } else {
+            console.log("Admin email sent via n8n webhook to:", notificationSettings.admin_email);
+          }
+        }
       } catch (adminEmailError: any) {
-        console.error("❌ Admin email error:", adminEmailError.message);
+        console.error("Admin email error:", adminEmailError.message);
       }
     }
 
