@@ -7,9 +7,9 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-// BOTH webhooks must be triggered for every notification
-const N8N_WEBHOOK_URL = Deno.env.get("N8N_WEBHOOK_URL") || "";
-const N8N_WHATSAPP_WEBHOOK_URL = Deno.env.get("N8N_WHATSAPP_WEBHOOK_URL") || "";
+// Force redeploy: 2026-01-29-email-only-v2
+// SYSTEM RULE: Email webhook URL → sends email templates ONLY
+const N8N_EMAIL_WEBHOOK_URL = Deno.env.get("N8N_WEBHOOK_URL") || "";
 
 interface RequestBody {
   barbershopId: string;
@@ -129,7 +129,7 @@ serve(async (req: Request) => {
 
   try {
     // Validate environment variable
-    if (!N8N_WEBHOOK_URL) {
+    if (!N8N_EMAIL_WEBHOOK_URL) {
       console.error("N8N email webhook URL not configured");
       return new Response(
         JSON.stringify({ success: false, message: "Email webhook não configurado" }),
@@ -152,12 +152,12 @@ serve(async (req: Request) => {
       );
     }
 
-    console.log(`Sending email notification${isTest ? " (TEST)" : ""} via n8n webhook to: ${recipientEmail}`);
+    console.log(`[EMAIL ONLY] Sending email notification${isTest ? " (TEST)" : ""} to: ${recipientEmail}`);
 
     // Fetch barbershop data to get logo_url and other details
     const { data: barbershop, error: barbershopError } = await supabase
       .from("barbershops")
-      .select("name, logo_url, address")
+      .select("name, logo_url, address, slug")
       .eq("id", barbershopId)
       .maybeSingle();
 
@@ -211,38 +211,25 @@ serve(async (req: Request) => {
       console.log("No custom email template found, using default");
     }
 
-    // Send to n8n webhook with the HTML template included
-    const webhookPayload = {
-      ...enrichedPayload,
+    // Build email-specific payload
+    const emailPayload = {
+      channel: 'email',
       barbershopId,
+      instanceName: barbershop?.slug || '',
+      ...enrichedPayload,
       email_html: emailHtml,
       email_subject: emailSubject,
       isTest: isTest || false,
       timestamp: new Date().toISOString(),
     };
 
-    console.log("Sending notification via BOTH n8n webhooks");
-
-    // Send to BOTH webhooks in parallel
-    const [emailRes, whatsappRes] = await Promise.all([
-      // Email webhook (primary)
-      fetch(N8N_WEBHOOK_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...webhookPayload, channel: 'email' }),
-      }),
-      // WhatsApp webhook (also triggered)
-      N8N_WHATSAPP_WEBHOOK_URL ? fetch(N8N_WHATSAPP_WEBHOOK_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...webhookPayload, channel: 'whatsapp' }),
-      }) : Promise.resolve(new Response('No whatsapp webhook configured', { status: 200 })),
-    ]);
-
-    console.log(`📤 Both webhooks triggered - Email: ${emailRes.status}, WhatsApp: ${whatsappRes.status}`);
-
-    // Use Email response as primary
-    const webhookRes = emailRes;
+    // Send to EMAIL webhook ONLY (system rule)
+    console.log("[EMAIL ONLY] Sending to N8N_WEBHOOK_URL");
+    const webhookRes = await fetch(N8N_EMAIL_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(emailPayload),
+    });
 
     // Capture response text and try to parse as JSON
     const responseText = await webhookRes.text();
@@ -253,13 +240,13 @@ serve(async (req: Request) => {
       webhookData = { raw_response: responseText };
     }
 
-    console.log("n8n webhook response status:", webhookRes.status);
-    console.log("n8n webhook response data:", webhookData);
+    console.log("n8n EMAIL webhook response status:", webhookRes.status);
+    console.log("n8n EMAIL webhook response data:", webhookData);
 
     if (!webhookRes.ok) {
-      console.error("Error calling n8n webhook:", responseText);
+      console.error("Error calling n8n EMAIL webhook:", responseText);
       
-      // Log failed notification with webhook response
+      // Log failed notification
       if (!isTest && barbershopId) {
         await supabase.from("notification_logs").insert({
           barbershop_id: barbershopId,
@@ -274,7 +261,6 @@ serve(async (req: Request) => {
           error_message: `Webhook error: ${webhookRes.status} - ${responseText.substring(0, 500)}`,
           sent_at: new Date().toISOString(),
         });
-        console.log("Notification failure logged with webhook response");
       }
       
       return new Response(
@@ -285,9 +271,9 @@ serve(async (req: Request) => {
 
     // Determine delivery status from webhook response
     const deliveryStatus = webhookData?.success === true ? "delivered" : "sent";
-    const workflowMessage = (webhookData?.message as string) || "Workflow started";
+    const workflowMessage = (webhookData?.message as string) || "Email workflow started";
 
-    // Log successful notification with webhook response details
+    // Log successful notification
     if (!isTest && barbershopId) {
       const { error: logError } = await supabase.from("notification_logs").insert({
         barbershop_id: barbershopId,
@@ -307,9 +293,9 @@ serve(async (req: Request) => {
       });
       
       if (logError) {
-        console.error("Error logging notification:", logError);
+        console.error("Error logging email notification:", logError);
       } else {
-        console.log("Notification logged successfully with status:", deliveryStatus);
+        console.log("Email notification logged successfully with status:", deliveryStatus);
       }
     }
 
@@ -326,7 +312,7 @@ serve(async (req: Request) => {
   } catch (error) {
     console.error("Error in send-email-webhook:", error);
     
-    // Try to log the error
+    // Log the error
     if (barbershopId) {
       try {
         await supabase.from("notification_logs").insert({
@@ -342,7 +328,7 @@ serve(async (req: Request) => {
           sent_at: new Date().toISOString(),
         });
       } catch (logErr) {
-        console.error("Failed to log notification error:", logErr);
+        console.error("Failed to log email notification error:", logErr);
       }
     }
     

@@ -7,10 +7,9 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-// Force redeploy: 2026-01-29-dual-webhook
-// BOTH webhooks must be triggered for every notification
+// Force redeploy: 2026-01-29-whatsapp-only
+// WhatsApp webhook URL → sends WhatsApp templates ONLY
 const N8N_WHATSAPP_WEBHOOK_URL = Deno.env.get("N8N_WHATSAPP_WEBHOOK_URL") || "";
-const N8N_EMAIL_WEBHOOK_URL = Deno.env.get("N8N_WEBHOOK_URL") || "";
 
 interface RequestBody {
   barbershopId: string;
@@ -39,12 +38,6 @@ serve(async (req: Request) => {
   let phone: string | undefined;
   let message: string | undefined;
   let instanceName: string | undefined;
-  let clientName: string | undefined;
-  let serviceName: string | undefined;
-  let bookingDate: string | undefined;
-  let bookingTime: string | undefined;
-  let barbershopName: string | undefined;
-  let barbershopAddress: string | undefined;
 
   try {
     // Validate environment variable
@@ -61,12 +54,12 @@ serve(async (req: Request) => {
     phone = body.phone;
     message = body.message;
     instanceName = body.instanceName;
-    clientName = body.clientName;
-    serviceName = body.serviceName;
-    bookingDate = body.bookingDate;
-    bookingTime = body.bookingTime;
-    barbershopName = body.barbershopName;
-    barbershopAddress = body.barbershopAddress;
+    const clientName = body.clientName;
+    const serviceName = body.serviceName;
+    const bookingDate = body.bookingDate;
+    const bookingTime = body.bookingTime;
+    const barbershopName = body.barbershopName;
+    const barbershopAddress = body.barbershopAddress;
     const isTest = body.isTest;
     
     if (!barbershopId || !message) {
@@ -87,10 +80,12 @@ serve(async (req: Request) => {
       instanceName = barbershop?.slug || undefined;
     }
 
-    console.log(`Sending notification${isTest ? " (TEST)" : ""} via BOTH n8n webhooks`);
+    console.log(`Sending WHATSAPP notification${isTest ? " (TEST)" : ""} via n8n webhook`);
     console.log(`Instance: ${instanceName}, Phone: ${phone || "test"}`);
     
-    const commonPayload = {
+    // Build WhatsApp-specific payload
+    const whatsappPayload = {
+      channel: 'whatsapp',
       barbershopId,
       phone: phone || "test",
       message,
@@ -105,26 +100,13 @@ serve(async (req: Request) => {
       timestamp: new Date().toISOString(),
     };
 
-    // Send to BOTH webhooks in parallel
-    const [whatsappRes, emailRes] = await Promise.all([
-      // WhatsApp webhook
-      fetch(N8N_WHATSAPP_WEBHOOK_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...commonPayload, channel: 'whatsapp' }),
-      }),
-      // Email webhook (also triggered)
-      N8N_EMAIL_WEBHOOK_URL ? fetch(N8N_EMAIL_WEBHOOK_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...commonPayload, channel: 'email' }),
-      }) : Promise.resolve(new Response('No email webhook configured', { status: 200 })),
-    ]);
+    // Send to WHATSAPP webhook ONLY
+    const webhookRes = await fetch(N8N_WHATSAPP_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(whatsappPayload),
+    });
 
-    // Use WhatsApp response as primary
-    const webhookRes = whatsappRes;
-
-    // Capture response text and try to parse as JSON
     const responseText = await webhookRes.text();
     let webhookData: Record<string, unknown> = {};
     try {
@@ -133,13 +115,13 @@ serve(async (req: Request) => {
       webhookData = { raw_response: responseText };
     }
 
-    console.log("n8n webhook response status:", webhookRes.status);
-    console.log("n8n webhook response data:", webhookData);
+    console.log("n8n WHATSAPP webhook response status:", webhookRes.status);
+    console.log("n8n WHATSAPP webhook response data:", webhookData);
 
     if (!webhookRes.ok) {
-      console.error("Error calling n8n webhook:", responseText);
+      console.error("Error calling n8n WHATSAPP webhook:", responseText);
       
-      // Log failed notification with webhook response
+      // Log failed notification
       if (!isTest && barbershopId) {
         await supabase.from("notification_logs").insert({
           barbershop_id: barbershopId,
@@ -154,12 +136,10 @@ serve(async (req: Request) => {
             booking_date: bookingDate,
             booking_time: bookingTime,
             webhook_status: webhookRes.status,
-            webhook_response: webhookData,
           }),
           error_message: `Webhook error: ${webhookRes.status} - ${responseText.substring(0, 500)}`,
           sent_at: new Date().toISOString(),
         });
-        console.log("Notification failure logged with webhook response");
       }
       
       return new Response(
@@ -168,11 +148,10 @@ serve(async (req: Request) => {
       );
     }
 
-    // Determine delivery status from webhook response
     const deliveryStatus = webhookData?.success === true ? "delivered" : "sent";
-    const workflowMessage = (webhookData?.message as string) || "Workflow started";
+    const workflowMessage = (webhookData?.message as string) || "WhatsApp workflow started";
 
-    // Log successful notification with webhook response details
+    // Log successful notification
     if (!isTest && barbershopId) {
       const { error: logError } = await supabase.from("notification_logs").insert({
         barbershop_id: barbershopId,
@@ -193,9 +172,9 @@ serve(async (req: Request) => {
       });
       
       if (logError) {
-        console.error("Error logging notification:", logError);
+        console.error("Error logging whatsapp notification:", logError);
       } else {
-        console.log("Notification logged successfully with status:", deliveryStatus);
+        console.log("WhatsApp notification logged successfully with status:", deliveryStatus);
       }
     }
 
@@ -213,7 +192,7 @@ serve(async (req: Request) => {
   } catch (error) {
     console.error("Error in send-whatsapp-webhook:", error);
     
-    // Try to log the error
+    // Log the error
     if (barbershopId) {
       try {
         await supabase.from("notification_logs").insert({
@@ -230,7 +209,7 @@ serve(async (req: Request) => {
           sent_at: new Date().toISOString(),
         });
       } catch (logErr) {
-        console.error("Failed to log notification error:", logErr);
+        console.error("Failed to log whatsapp notification error:", logErr);
       }
     }
     
