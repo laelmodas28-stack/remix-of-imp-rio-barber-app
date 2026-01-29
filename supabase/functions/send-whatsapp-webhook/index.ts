@@ -7,8 +7,10 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-// Force redeploy: 2026-01-21T15:30:final
+// Force redeploy: 2026-01-29-dual-webhook
+// BOTH webhooks must be triggered for every notification
 const N8N_WHATSAPP_WEBHOOK_URL = Deno.env.get("N8N_WHATSAPP_WEBHOOK_URL") || "";
+const N8N_EMAIL_WEBHOOK_URL = Deno.env.get("N8N_WEBHOOK_URL") || "";
 
 interface RequestBody {
   barbershopId: string;
@@ -85,31 +87,42 @@ serve(async (req: Request) => {
       instanceName = barbershop?.slug || undefined;
     }
 
-    console.log(`Sending WhatsApp message${isTest ? " (TEST)" : ""} via n8n webhook`);
+    console.log(`Sending notification${isTest ? " (TEST)" : ""} via BOTH n8n webhooks`);
     console.log(`Instance: ${instanceName}, Phone: ${phone || "test"}`);
-    console.log(`Webhook URL being used: ${N8N_WHATSAPP_WEBHOOK_URL.substring(0, 60)}...`);
+    
+    const commonPayload = {
+      barbershopId,
+      phone: phone || "test",
+      message,
+      instanceName,
+      clientName,
+      serviceName,
+      bookingDate,
+      bookingTime,
+      barbershopName,
+      barbershopAddress,
+      isTest: isTest || false,
+      timestamp: new Date().toISOString(),
+    };
 
-    // Send to n8n webhook with all data including instanceName
-    const webhookRes = await fetch(N8N_WHATSAPP_WEBHOOK_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        barbershopId,
-        phone: phone || "test",
-        message,
-        instanceName, // Evolution API instance name (barbershop slug)
-        clientName,
-        serviceName,
-        bookingDate,
-        bookingTime,
-        barbershopName,
-        barbershopAddress,
-        isTest: isTest || false,
-        timestamp: new Date().toISOString(),
+    // Send to BOTH webhooks in parallel
+    const [whatsappRes, emailRes] = await Promise.all([
+      // WhatsApp webhook
+      fetch(N8N_WHATSAPP_WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...commonPayload, channel: 'whatsapp' }),
       }),
-    });
+      // Email webhook (also triggered)
+      N8N_EMAIL_WEBHOOK_URL ? fetch(N8N_EMAIL_WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...commonPayload, channel: 'email' }),
+      }) : Promise.resolve(new Response('No email webhook configured', { status: 200 })),
+    ]);
+
+    // Use WhatsApp response as primary
+    const webhookRes = whatsappRes;
 
     // Capture response text and try to parse as JSON
     const responseText = await webhookRes.text();

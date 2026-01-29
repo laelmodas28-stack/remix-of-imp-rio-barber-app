@@ -7,7 +7,9 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+// BOTH webhooks must be triggered for every notification
 const N8N_WEBHOOK_URL = Deno.env.get("N8N_WEBHOOK_URL") || "";
+const N8N_WHATSAPP_WEBHOOK_URL = Deno.env.get("N8N_WHATSAPP_WEBHOOK_URL") || "";
 
 interface RequestBody {
   barbershopId: string;
@@ -219,15 +221,28 @@ serve(async (req: Request) => {
       timestamp: new Date().toISOString(),
     };
 
-    console.log("Sending email with subject:", emailSubject);
+    console.log("Sending notification via BOTH n8n webhooks");
 
-    const webhookRes = await fetch(N8N_WEBHOOK_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(webhookPayload),
-    });
+    // Send to BOTH webhooks in parallel
+    const [emailRes, whatsappRes] = await Promise.all([
+      // Email webhook (primary)
+      fetch(N8N_WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...webhookPayload, channel: 'email' }),
+      }),
+      // WhatsApp webhook (also triggered)
+      N8N_WHATSAPP_WEBHOOK_URL ? fetch(N8N_WHATSAPP_WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...webhookPayload, channel: 'whatsapp' }),
+      }) : Promise.resolve(new Response('No whatsapp webhook configured', { status: 200 })),
+    ]);
+
+    console.log(`📤 Both webhooks triggered - Email: ${emailRes.status}, WhatsApp: ${whatsappRes.status}`);
+
+    // Use Email response as primary
+    const webhookRes = emailRes;
 
     // Capture response text and try to parse as JSON
     const responseText = await webhookRes.text();

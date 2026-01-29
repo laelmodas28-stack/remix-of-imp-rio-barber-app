@@ -10,8 +10,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// n8n webhook URLs
+// n8n webhook URLs - BOTH must be triggered for every notification
 const N8N_WHATSAPP_WEBHOOK_URL = Deno.env.get("N8N_WHATSAPP_WEBHOOK_URL") || "";
+const N8N_EMAIL_WEBHOOK_URL = Deno.env.get("N8N_WEBHOOK_URL") || "";
 
 // Helper function to format phone number for WhatsApp
 function formatPhoneNumber(phone: string): string {
@@ -22,7 +23,92 @@ function formatPhoneNumber(phone: string): string {
   return cleaned;
 }
 
-// Send WhatsApp message via n8n webhook
+// Send notification to BOTH n8n webhooks (WhatsApp + Email)
+// This ensures all n8n workflows are triggered for every notification
+async function sendToBothWebhooks(
+  barbershopId: string,
+  instanceName: string,
+  phone: string,
+  email: string,
+  message: string,
+  clientName: string,
+  serviceName: string,
+  bookingDate: string,
+  bookingTime: string,
+  barbershopName: string,
+  barbershopAddress?: string,
+  notificationType: string = 'booking_confirmation'
+): Promise<{ whatsapp: { success: boolean; error?: string }; email: { success: boolean; error?: string } }> {
+  const timestamp = new Date().toISOString();
+  
+  const commonPayload = {
+    barbershopId,
+    instanceName,
+    phone: formatPhoneNumber(phone),
+    email,
+    message,
+    clientName,
+    serviceName,
+    bookingDate,
+    bookingTime,
+    barbershopName,
+    barbershopAddress,
+    notificationType,
+    timestamp,
+  };
+
+  // Send to BOTH webhooks in parallel
+  const [whatsappResult, emailResult] = await Promise.all([
+    // WhatsApp webhook
+    (async () => {
+      if (!N8N_WHATSAPP_WEBHOOK_URL) {
+        return { success: false, error: "N8N WhatsApp webhook not configured" };
+      }
+      try {
+        const response = await fetch(N8N_WHATSAPP_WEBHOOK_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...commonPayload, channel: 'whatsapp' }),
+        });
+        if (!response.ok) {
+          const errorText = await response.text();
+          return { success: false, error: `WhatsApp webhook error: ${response.status} - ${errorText}` };
+        }
+        await response.text(); // Consume response
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
+      }
+    })(),
+    // Email webhook
+    (async () => {
+      if (!N8N_EMAIL_WEBHOOK_URL) {
+        return { success: false, error: "N8N Email webhook not configured" };
+      }
+      try {
+        const response = await fetch(N8N_EMAIL_WEBHOOK_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...commonPayload, channel: 'email' }),
+        });
+        if (!response.ok) {
+          const errorText = await response.text();
+          return { success: false, error: `Email webhook error: ${response.status} - ${errorText}` };
+        }
+        await response.text(); // Consume response
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
+      }
+    })(),
+  ]);
+
+  console.log(`📤 Both webhooks triggered - WhatsApp: ${whatsappResult.success}, Email: ${emailResult.success}`);
+  
+  return { whatsapp: whatsappResult, email: emailResult };
+}
+
+// Legacy function for backward compatibility - now also triggers both webhooks
 async function sendWhatsAppViaWebhook(
   barbershopId: string,
   instanceName: string,
@@ -35,38 +121,23 @@ async function sendWhatsAppViaWebhook(
   barbershopName: string,
   barbershopAddress?: string
 ): Promise<{ success: boolean; error?: string }> {
-  if (!N8N_WHATSAPP_WEBHOOK_URL) {
-    return { success: false, error: "N8N WhatsApp webhook not configured" };
-  }
-
-  try {
-    const response = await fetch(N8N_WHATSAPP_WEBHOOK_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        barbershopId,
-        instanceName,
-        phone: formatPhoneNumber(phone),
-        message,
-        clientName,
-        serviceName,
-        bookingDate,
-        bookingTime,
-        barbershopName,
-        barbershopAddress,
-        timestamp: new Date().toISOString(),
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      return { success: false, error: `Webhook error: ${response.status} - ${errorText}` };
-    }
-
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
-  }
+  // Trigger both webhooks
+  const result = await sendToBothWebhooks(
+    barbershopId,
+    instanceName,
+    phone,
+    '', // email - will be filled by main function
+    message,
+    clientName,
+    serviceName,
+    bookingDate,
+    bookingTime,
+    barbershopName,
+    barbershopAddress
+  );
+  
+  // Return WhatsApp result for backward compatibility
+  return result.whatsapp;
 }
 
 // Send SMS using MessageBird
