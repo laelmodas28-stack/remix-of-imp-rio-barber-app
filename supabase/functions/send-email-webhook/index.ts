@@ -17,6 +17,20 @@ interface RequestBody {
   isTest?: boolean;
 }
 
+// Helper function to format price
+function formatPrice(value: unknown): string {
+  if (typeof value === 'string' && value.includes('R$')) {
+    return value; // Already formatted
+  }
+  if (typeof value === 'number') {
+    return `R$ ${value.toFixed(2).replace('.', ',')}`;
+  }
+  if (typeof value === 'string' && !isNaN(parseFloat(value))) {
+    return `R$ ${parseFloat(value).toFixed(2).replace('.', ',')}`;
+  }
+  return (value as string) || '';
+}
+
 // Helper function to replace placeholders in templates
 function replacePlaceholders(template: string, data: Record<string, unknown>): string {
   return template
@@ -25,7 +39,7 @@ function replacePlaceholders(template: string, data: Record<string, unknown>): s
     .replace(/\{\{data_agendamento\}\}/g, (data.booking_date as string) || '')
     .replace(/\{\{hora_agendamento\}\}/g, (data.booking_time as string) || '')
     .replace(/\{\{profissional_nome\}\}/g, (data.professional_name as string) || '')
-    .replace(/\{\{servico_preco\}\}/g, (data.service_price as string) || '')
+    .replace(/\{\{servico_preco\}\}/g, formatPrice(data.service_price))
     .replace(/\{\{barbearia_nome\}\}/g, (data.barbershop_name as string) || '')
     .replace(/\{\{barbearia_endereco\}\}/g, (data.barbershop_address as string) || '')
     .replace(/\{\{barbearia_logo_url\}\}/g, (data.barbershop_logo_url as string) || '');
@@ -38,7 +52,7 @@ function generateDefaultEmailHtml(data: Record<string, unknown>): string {
   const bookingDate = (data.booking_date as string) || '';
   const bookingTime = (data.booking_time as string) || '';
   const professionalName = (data.professional_name as string) || '';
-  const servicePrice = (data.service_price as string) || '';
+  const servicePrice = formatPrice(data.service_price);
   const barbershopName = (data.barbershop_name as string) || 'Barbearia';
   const barbershopAddress = (data.barbershop_address as string) || '';
   const barbershopLogoUrl = (data.barbershop_logo_url as string) || '';

@@ -233,6 +233,9 @@ export async function sendBookingNotifications(data: BookingNotificationData): P
 
     console.log(`[BookingNotifications] Calling EMAIL webhook for ${data.notificationType}`);
 
+    // Format price for Brazilian format
+    const formattedPrice = data.price ? `R$ ${data.price.toFixed(2).replace('.', ',')}` : '';
+    
     const { error } = await supabase.functions.invoke("send-email-webhook", {
       body: {
         barbershopId: data.barbershopId,
@@ -246,7 +249,7 @@ export async function sendBookingNotifications(data: BookingNotificationData): P
           booking_date: formatDateBR(data.bookingDate),
           booking_time: formatTimeBR(data.bookingTime),
           barbershop_name: barbershopName,
-          price: data.price,
+          service_price: formattedPrice,
           email_subject: emailSubject,
           email_html: emailHtml,
         },
