@@ -587,74 +587,66 @@ Enviado por ImperioApp`,
           login_page: `${BASE_URL}/b/${barbershopData.slug}/auth`
         };
 
-        // Email de boas-vindas para o dono da barbearia (padrão consistente com outros templates)
+        // Email de boas-vindas para o dono da barbearia (padrão sistema - sem emojis, minimalista)
         // Usa /auth geral do ImperioApp - após login, redireciona para a barbearia correta
         const loginUrl = `${BASE_URL}/auth`;
+        const adminUrl = `${BASE_URL}/b/${barbershopData.slug}/admin`;
+        const currentDate = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
         
+        // Template padrão do sistema: minimalista, corporativo, sem emojis
         const welcomeEmailHtml = `<!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
     <tr>
       <td align="center">
-        <!-- Main Card -->
-        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #1a1a2e; border-radius: 16px; overflow: hidden;">
-          <!-- Title -->
+        <table width="500" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);">
+          <!-- Header -->
           <tr>
-            <td align="center" style="padding: 40px 40px 20px;">
-              <h1 style="color: #d4af37; margin: 0; font-size: 28px;">🎉 Bem-vindo ao Império Barber!</h1>
+            <td style="background-color: #1a1a2e; padding: 24px 32px; text-align: center; border-radius: 8px 8px 0 0;">
+              <h1 style="margin: 0; font-size: 20px; font-weight: 600; color: #ffffff;">Bem-vindo ao ImperioApp</h1>
             </td>
           </tr>
-          
-          <!-- Greeting -->
+          <!-- Content -->
           <tr>
-            <td align="center" style="padding: 10px 40px;">
-              <p style="color: #ffffff; font-size: 18px; margin: 0;">Olá, <strong>${owner.full_name}</strong>!</p>
-              <p style="color: #ccc; font-size: 14px; margin: 15px 0 0;">Sua barbearia foi cadastrada com sucesso.</p>
-            </td>
-          </tr>
-          
-          <!-- Barbershop Info Card -->
-          <tr>
-            <td style="padding: 25px 40px;">
-              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #252545; border-radius: 12px;">
+            <td style="padding: 24px 32px;">
+              <p style="margin: 0 0 16px; font-size: 15px; color: #333;">Ola, <strong>${owner.full_name}</strong>!</p>
+              <p style="margin: 0 0 24px; font-size: 14px; color: #666;">Sua barbearia foi cadastrada com sucesso em nossa plataforma.</p>
+              
+              <!-- Details Card -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f8f8; border-radius: 8px; border: 1px solid #e5e5e5;">
                 <tr>
-                  <td style="padding: 20px; border-bottom: 1px solid #3a3a5a;">
-                    <span style="color: #888; font-size: 12px; text-transform: uppercase;">Barbearia</span><br/>
-                    <span style="color: #d4af37; font-size: 20px; font-weight: bold;">${barbershop.name}</span>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 20px;">
-                    <span style="color: #888; font-size: 12px; text-transform: uppercase;">Seu Email de Acesso</span><br/>
-                    <span style="color: #fff; font-size: 16px;">${owner.email}</span>
-                    <p style="color: #888; font-size: 12px; margin: 8px 0 0;">Use a senha cadastrada para fazer login.</p>
+                  <td style="padding: 16px;">
+                    <p style="margin: 0 0 8px; font-size: 14px; color: #333;"><strong>Barbearia:</strong> ${barbershop.name}</p>
+                    <p style="margin: 0 0 8px; font-size: 14px; color: #333;"><strong>Email:</strong> ${owner.email}</p>
+                    <p style="margin: 0; font-size: 14px; color: #333;"><strong>Data de Cadastro:</strong> ${currentDate}</p>
                   </td>
                 </tr>
               </table>
+              
+              <!-- CTA Button -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 24px;">
+                <tr>
+                  <td align="center">
+                    <a href="${adminUrl}" style="display: inline-block; background-color: #1a1a2e; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: 600; font-size: 14px;">
+                      Acessar Painel Administrativo
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              
+              <p style="margin: 24px 0 0; font-size: 13px; color: #888; text-align: center;">Use sua senha cadastrada para fazer login.</p>
             </td>
           </tr>
-          
-          <!-- CTA Button -->
+          <!-- Footer -->
           <tr>
-            <td align="center" style="padding: 10px 40px 40px;">
-              <a href="${loginUrl}" style="display: inline-block; background: linear-gradient(135deg, #d4af37 0%, #b8962e 100%); color: #1a1a2e; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: bold; font-size: 16px;">
-                Acessar Meu Painel
-              </a>
-            </td>
-          </tr>
-        </table>
-        
-        <!-- Footer -->
-        <table width="600" cellpadding="0" cellspacing="0" style="margin-top: 20px;">
-          <tr>
-            <td align="center" style="padding: 20px;">
-              <p style="color: #888; font-size: 12px; margin: 0;">Enviado por <strong>ImperioApp</strong></p>
-              <p style="color: #888; font-size: 11px; margin: 8px 0 0;">Suporte: Imperiobarber92@gmail.com | (11) 96933-2465</p>
+            <td style="padding: 16px 32px 24px; text-align: center; border-top: 1px solid #e5e5e5;">
+              <p style="margin: 0 0 4px; font-size: 12px; color: #888;">Enviado por ImperioApp</p>
+              <p style="margin: 0; font-size: 11px; color: #aaa;">Suporte: imperiobarber92@gmail.com</p>
             </td>
           </tr>
         </table>
@@ -664,17 +656,20 @@ Enviado por ImperioApp`,
 </body>
 </html>`;
 
-        // Payload para o webhook de email
+        // Payload para o webhook de email - IMPORTANTE: n8n deve usar email_html diretamente
         const emailPayload = {
           barbershopId: barbershopId,
+          channel: 'email',
           to: owner.email,
           client_email: owner.email,
           client_name: owner.full_name,
-          email_subject: `🎉 Bem-vindo ao Império Barber - ${barbershop.name}`,
+          email_subject: `${barbershop.name} - Bem-vindo ao ImperioApp`,
           email_html: welcomeEmailHtml,
           barbershop_name: barbershop.name,
           barbershop_slug: barbershopData.slug,
           event_type: "barbershop_registration",
+          trigger_event: "barbershop_registration",
+          use_custom_html: true,
           timestamp: new Date().toISOString(),
         };
 
@@ -695,7 +690,7 @@ Enviado por ImperioApp`,
         console.log('N8N_WEBHOOK_URL not configured, skipping welcome email');
       }
     } catch (emailError) {
-      console.error('Erro ao enviar email de boas-vindas (não crítico):', emailError);
+      console.error('Erro ao enviar email de boas-vindas (não critico):', emailError);
       // Don't fail the registration if email fails
     }
 
