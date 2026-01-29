@@ -125,9 +125,9 @@ export const useTrialStatus = (barbershopId?: string): TrialStatus => {
   // If has valid trial - system is accessible
   if (trialSubscription && trialSubscription.trial_ends_at) {
     const trialEndDate = new Date(trialSubscription.trial_ends_at);
-    // Use startOfDay to calculate full remaining days (including today)
-    // This ensures if you register today, you see 7 days, not 6
-    const daysLeft = differenceInDays(startOfDay(trialEndDate), startOfDay(now)) + 1;
+    // Use startOfDay to calculate full remaining days
+    // This ensures consistent day counting regardless of time of day
+    const daysLeft = differenceInDays(startOfDay(trialEndDate), startOfDay(now));
     return {
       isInTrial: true,
       trialExpired: false,
