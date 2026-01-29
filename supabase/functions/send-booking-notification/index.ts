@@ -150,11 +150,11 @@ const handler = async (req: Request): Promise<Response> => {
     
     const date = booking.booking_date;
     const time = booking.booking_time;
-    const service = booking.services.name;
-    const professional = booking.professionals.name;
-    const price = booking.services.price;
+    const service = booking.services?.name || "Serviço";
+    const professional = booking.professionals?.name || "Profissional";
+    const price = booking.services?.price ?? booking.total_price ?? 0;
 
-    console.log("Processing notification for:", clientEmail || clientPhone, "Barbershop:", barbershopId);
+    console.log("Processing notification for:", clientEmail || clientPhone, "Barbershop:", barbershopId, "Price:", price);
     
     // Helper function to save notification to database
     const saveNotification = async (userId: string, type: string, title: string, message: string) => {
@@ -307,13 +307,16 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Helper function to replace placeholders in templates
     const replacePlaceholders = (template: string): string => {
+      // Format price safely - handle undefined/null cases
+      const formattedPrice = price != null ? price.toFixed(2).replace('.', ',') : '0,00';
+      
       return template
         .replace(/\{\{cliente_nome\}\}/g, clientName)
         .replace(/\{\{servico_nome\}\}/g, service)
         .replace(/\{\{data_agendamento\}\}/g, formattedDate)
         .replace(/\{\{hora_agendamento\}\}/g, time)
         .replace(/\{\{profissional_nome\}\}/g, professional)
-        .replace(/\{\{servico_preco\}\}/g, `R$ ${price.toFixed(2).replace('.', ',')}`)
+        .replace(/\{\{servico_preco\}\}/g, formattedPrice)
         .replace(/\{\{barbearia_nome\}\}/g, barbershopName)
         .replace(/\{\{barbearia_endereco\}\}/g, barbershopAddress || '')
         .replace(/\{\{barbearia_logo_url\}\}/g, barbershop?.logo_url || '');
