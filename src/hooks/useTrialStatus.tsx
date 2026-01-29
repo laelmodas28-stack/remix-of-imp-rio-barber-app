@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { differenceInDays, isAfter } from "date-fns";
+import { differenceInDays, isAfter, startOfDay } from "date-fns";
 
 export interface BarbershopSubscription {
   id: string;
@@ -125,10 +125,13 @@ export const useTrialStatus = (barbershopId?: string): TrialStatus => {
   // If has valid trial - system is accessible
   if (trialSubscription && trialSubscription.trial_ends_at) {
     const trialEndDate = new Date(trialSubscription.trial_ends_at);
+    // Use startOfDay to calculate full remaining days (including today)
+    // This ensures if you register today, you see 7 days, not 6
+    const daysLeft = differenceInDays(startOfDay(trialEndDate), startOfDay(now)) + 1;
     return {
       isInTrial: true,
       trialExpired: false,
-      daysRemaining: differenceInDays(trialEndDate, now),
+      daysRemaining: Math.max(daysLeft, 0),
       trialEndDate,
       hasActiveSubscription: true, // Trial counts as active for access
       isLoading: false,
