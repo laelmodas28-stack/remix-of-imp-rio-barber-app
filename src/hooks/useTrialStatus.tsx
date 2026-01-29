@@ -88,10 +88,10 @@ export const useTrialStatus = (barbershopId?: string): TrialStatus => {
 
   const now = new Date();
 
-  // Find the trial subscription (original trial created on registration)
-  const trialSubscription = subscriptions.find(s => s.status === 'trial' && s.trial_ends_at);
-  
-  // Find any PAID and ACTIVE subscription (status = 'active' with paid_at set)
+  // Find the most recent subscription for display purposes
+  const latestSubscription = subscriptions[0];
+
+  // PRIORITY 1: Find any PAID and ACTIVE subscription (status = 'active' with paid_at set)
   const paidActiveSubscription = subscriptions.find(s => 
     s.status === 'active' && 
     s.paid_at && 
@@ -99,10 +99,7 @@ export const useTrialStatus = (barbershopId?: string): TrialStatus => {
     isAfter(new Date(s.subscription_ends_at), now)
   );
 
-  // Find the most recent subscription for display purposes
-  const latestSubscription = subscriptions[0];
-
-  // CASE 1: Has a paid active subscription - system is fully unlocked
+  // If has a paid active subscription - system is fully unlocked
   if (paidActiveSubscription) {
     const endDate = new Date(paidActiveSubscription.subscription_ends_at!);
     return {
@@ -113,62 +110,62 @@ export const useTrialStatus = (barbershopId?: string): TrialStatus => {
       hasActiveSubscription: true,
       isLoading: false,
       subscription: paidActiveSubscription,
+      trialSubscription: null,
+      refetch,
+    };
+  }
+
+  // PRIORITY 2: Find any valid trial subscription (status = 'trial' with valid trial_ends_at)
+  const trialSubscription = subscriptions.find(s => 
+    s.status === 'trial' && 
+    s.trial_ends_at && 
+    isAfter(new Date(s.trial_ends_at), now)
+  );
+
+  // If has valid trial - system is accessible
+  if (trialSubscription && trialSubscription.trial_ends_at) {
+    const trialEndDate = new Date(trialSubscription.trial_ends_at);
+    return {
+      isInTrial: true,
+      trialExpired: false,
+      daysRemaining: differenceInDays(trialEndDate, now),
+      trialEndDate,
+      hasActiveSubscription: true, // Trial counts as active for access
+      isLoading: false,
+      subscription: latestSubscription,
       trialSubscription,
       refetch,
     };
   }
 
-  // CASE 2: Check if trial is still valid
-  if (trialSubscription && trialSubscription.trial_ends_at) {
-    const trialEndDate = new Date(trialSubscription.trial_ends_at);
-    const isTrialValid = isAfter(trialEndDate, now);
+  // PRIORITY 3: Check if there was a trial that has now expired
+  const expiredTrial = subscriptions.find(s => 
+    s.status === 'trial' && 
+    s.trial_ends_at && 
+    !isAfter(new Date(s.trial_ends_at), now)
+  );
 
-    if (isTrialValid) {
-      // Trial is still valid - system is accessible
-      return {
-        isInTrial: true,
-        trialExpired: false,
-        daysRemaining: differenceInDays(trialEndDate, now),
-        trialEndDate,
-        hasActiveSubscription: true, // Trial counts as active for access
-        isLoading: false,
-        subscription: latestSubscription,
-        trialSubscription,
-        refetch,
-      };
-    } else {
-      // Trial has expired - SYSTEM MUST BE BLOCKED
-      return {
-        isInTrial: false,
-        trialExpired: true,
-        daysRemaining: 0,
-        trialEndDate,
-        hasActiveSubscription: false,
-        isLoading: false,
-        subscription: latestSubscription,
-        trialSubscription,
-        refetch,
-      };
-    }
-  }
+  // Also check any subscription with trial_ends_at that has passed
+  const anyExpiredTrialEnd = subscriptions.find(s => 
+    s.trial_ends_at && 
+    !isAfter(new Date(s.trial_ends_at), now)
+  );
 
-  // CASE 3: No trial subscription found but other subscriptions exist
-  // Check if trial_ends_at on latest subscription has passed
-  const latestTrialEnd = latestSubscription.trial_ends_at 
-    ? new Date(latestSubscription.trial_ends_at) 
+  const relevantExpiredTrial = expiredTrial || anyExpiredTrialEnd;
+  const trialEndDate = relevantExpiredTrial?.trial_ends_at 
+    ? new Date(relevantExpiredTrial.trial_ends_at) 
     : null;
-  
-  const trialHasExpired = latestTrialEnd ? !isAfter(latestTrialEnd, now) : true;
 
+  // No active paid subscription and no valid trial = blocked
   return {
     isInTrial: false,
-    trialExpired: trialHasExpired,
+    trialExpired: true,
     daysRemaining: 0,
-    trialEndDate: latestTrialEnd,
+    trialEndDate,
     hasActiveSubscription: false,
     isLoading: false,
     subscription: latestSubscription,
-    trialSubscription: null,
+    trialSubscription: expiredTrial || null,
     refetch,
   };
 };
