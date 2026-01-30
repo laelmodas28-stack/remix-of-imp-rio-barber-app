@@ -52,7 +52,7 @@ export function RevenueReportPage() {
         .eq("barbershop_id", barbershop.id)
         .gte("booking_date", format(dateRange.start, "yyyy-MM-dd"))
         .lte("booking_date", format(dateRange.end, "yyyy-MM-dd"))
-        .in("status", ["completed", "confirmed"]);
+        .eq("status", "completed");
       if (error) throw error;
       return data || [];
     },
@@ -72,7 +72,7 @@ export function RevenueReportPage() {
         .eq("barbershop_id", barbershop.id)
         .gte("booking_date", format(prevStart, "yyyy-MM-dd"))
         .lte("booking_date", format(prevEnd, "yyyy-MM-dd"))
-        .in("status", ["completed", "confirmed"]);
+        .eq("status", "completed");
       if (error) throw error;
       return data || [];
     },
