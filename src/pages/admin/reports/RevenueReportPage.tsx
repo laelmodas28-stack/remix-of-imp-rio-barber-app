@@ -42,6 +42,7 @@ export function RevenueReportPage() {
           id,
           booking_date,
           price,
+          total_price,
           status,
           service_id,
           professional_id,
@@ -67,7 +68,7 @@ export function RevenueReportPage() {
       const prevStart = subDays(prevEnd, days);
       const { data, error } = await supabase
         .from("bookings")
-        .select("price")
+        .select("price, total_price")
         .eq("barbershop_id", barbershop.id)
         .gte("booking_date", format(prevStart, "yyyy-MM-dd"))
         .lte("booking_date", format(prevEnd, "yyyy-MM-dd"))
@@ -80,10 +81,10 @@ export function RevenueReportPage() {
 
   const stats = useMemo(() => {
     if (!bookings) return { total: 0, average: 0, count: 0, growth: 0 };
-    const total = bookings.reduce((sum, b) => sum + (Number(b.price) || 0), 0);
+    const total = bookings.reduce((sum, b) => sum + (Number(b.total_price) || Number(b.price) || 0), 0);
     const count = bookings.length;
     const average = count > 0 ? total / count : 0;
-    const previousTotal = previousBookings?.reduce((sum, b) => sum + (Number(b.price) || 0), 0) || 0;
+    const previousTotal = previousBookings?.reduce((sum, b) => sum + (Number(b.total_price) || Number(b.price) || 0), 0) || 0;
     const growth = previousTotal > 0 ? ((total - previousTotal) / previousTotal) * 100 : 0;
     return { total, average, count, growth };
   }, [bookings, previousBookings]);
@@ -95,21 +96,21 @@ export function RevenueReportPage() {
       const months = eachMonthOfInterval({ start: dateRange.start, end: dateRange.end });
       return months.map(month => {
         const monthBookings = bookings.filter(b => isSameMonth(parseISO(b.booking_date), month));
-        const revenue = monthBookings.reduce((sum, b) => sum + (Number(b.price) || 0), 0);
+        const revenue = monthBookings.reduce((sum, b) => sum + (Number(b.total_price) || Number(b.price) || 0), 0);
         return { name: format(month, "MMM", { locale: ptBR }), receita: revenue };
       });
     } else if (period === "90d") {
       const weeks = eachWeekOfInterval({ start: dateRange.start, end: dateRange.end });
       return weeks.map(week => {
         const weekBookings = bookings.filter(b => isSameWeek(parseISO(b.booking_date), week));
-        const revenue = weekBookings.reduce((sum, b) => sum + (Number(b.price) || 0), 0);
+        const revenue = weekBookings.reduce((sum, b) => sum + (Number(b.total_price) || Number(b.price) || 0), 0);
         return { name: format(week, "dd/MM", { locale: ptBR }), receita: revenue };
       });
     } else {
       const days = eachDayOfInterval({ start: dateRange.start, end: dateRange.end });
       return days.map(day => {
         const dayBookings = bookings.filter(b => isSameDay(parseISO(b.booking_date), day));
-        const revenue = dayBookings.reduce((sum, b) => sum + (Number(b.price) || 0), 0);
+        const revenue = dayBookings.reduce((sum, b) => sum + (Number(b.total_price) || Number(b.price) || 0), 0);
         return { name: format(day, "dd/MM", { locale: ptBR }), receita: revenue };
       });
     }
@@ -120,7 +121,7 @@ export function RevenueReportPage() {
     const serviceMap = new Map<string, number>();
     bookings.forEach(b => {
       const serviceName = (b.services as any)?.name || "Outros";
-      serviceMap.set(serviceName, (serviceMap.get(serviceName) || 0) + (Number(b.price) || 0));
+      serviceMap.set(serviceName, (serviceMap.get(serviceName) || 0) + (Number(b.total_price) || Number(b.price) || 0));
     });
     return Array.from(serviceMap.entries())
       .map(([name, value]) => ({ name, value }))
@@ -133,7 +134,7 @@ export function RevenueReportPage() {
     const profMap = new Map<string, number>();
     bookings.forEach(b => {
       const profName = (b.professionals as any)?.name || "Não atribuído";
-      profMap.set(profName, (profMap.get(profName) || 0) + (Number(b.price) || 0));
+      profMap.set(profName, (profMap.get(profName) || 0) + (Number(b.total_price) || Number(b.price) || 0));
     });
     return Array.from(profMap.entries())
       .map(([name, value]) => ({ name, value }))
@@ -148,7 +149,7 @@ export function RevenueReportPage() {
         b.booking_date,
         (b.services as any)?.name || "",
         (b.professionals as any)?.name || "",
-        b.price?.toString() || "0",
+        (b.total_price || b.price || 0).toString(),
         b.status || ""
       ])
     ].map(row => row.join(",")).join("\n");
