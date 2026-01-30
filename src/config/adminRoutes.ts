@@ -62,7 +62,6 @@ export const adminRoutes: RouteConfig[] = [
 
   // Clients - Admin only
   { id: "clients-list", label: "Lista de Clientes", path: "clients/list", icon: Users, parentId: "clients", order: 1, description: "Todos os clientes cadastrados", access: "admin" },
-  { id: "clients-segments", label: "Segmentos", path: "clients/segments", icon: Tags, parentId: "clients", order: 2, description: "Tags e segmentacao", access: "admin" },
 
   // Professionals - Admin only (team management)
   { id: "professionals-list", label: "Equipe", path: "professionals/list", icon: UserCircle, parentId: "professionals", order: 1, description: "Profissionais cadastrados", access: "admin" },
