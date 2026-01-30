@@ -48,7 +48,7 @@ interface Barbershop {
 }
 
 const PLAN_FEATURES: Record<string, string[]> = {
-  essential: [
+  essencial: [
     "1 profissional",
     "Dashboard financeiro completo",
     "Relatórios detalhados",
@@ -57,7 +57,7 @@ const PLAN_FEATURES: Record<string, string[]> = {
     "Sistema 100% personalizado",
     "Suporte via WhatsApp",
   ],
-  professional: [
+  profissional: [
     "Até 3 profissionais",
     "Dashboard financeiro completo",
     "Relatórios detalhados",
@@ -66,7 +66,7 @@ const PLAN_FEATURES: Record<string, string[]> = {
     "Sistema 100% personalizado",
     "Suporte via WhatsApp",
   ],
-  enterprise: [
+  completo: [
     "Profissionais ilimitados",
     "Dashboard financeiro completo",
     "Relatórios detalhados",
@@ -83,16 +83,16 @@ const PLAN_FEATURES: Record<string, string[]> = {
 };
 
 const PLAN_NAMES: Record<string, string> = {
-  essential: "Essencial",
-  professional: "Profissional",
-  enterprise: "Completo",
+  essencial: "Essencial",
+  profissional: "Profissional",
+  completo: "Completo",
   trial: "Período de Teste",
 };
 
 const PLAN_ICONS: Record<string, React.ReactNode> = {
-  essential: <Crown className="w-5 h-5" />,
-  professional: <Crown className="w-5 h-5" />,
-  enterprise: <Crown className="w-5 h-5" />,
+  essencial: <Crown className="w-5 h-5" />,
+  profissional: <Crown className="w-5 h-5" />,
+  completo: <Crown className="w-5 h-5" />,
   trial: <Clock className="w-5 h-5" />,
 };
 
@@ -267,7 +267,7 @@ export const SubscriptionSummary = ({ barbershopId }: SubscriptionSummaryProps) 
                 {isExpired ? 'Assinar Plano' : 'Fazer Upgrade'}
               </Button>
             )}
-            {isActive && planType !== 'enterprise' && (
+            {isActive && planType !== 'completo' && (
               <Button onClick={handleUpgrade} variant="outline" className="gap-2">
                 <Crown className="w-4 h-4" />
                 Mudar Plano
