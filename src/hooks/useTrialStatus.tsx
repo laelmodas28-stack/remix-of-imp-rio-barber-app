@@ -91,10 +91,10 @@ export const useTrialStatus = (barbershopId?: string): TrialStatus => {
   // Find the most recent subscription for display purposes
   const latestSubscription = subscriptions[0];
 
-  // PRIORITY 1: Find any PAID and ACTIVE subscription (status = 'active' with paid_at set)
+  // PRIORITY 1: Find any ACTIVE subscription with valid subscription_ends_at
+  // Note: paid_at check removed - subscriptions activated manually by SuperAdmin may not have paid_at set
   const paidActiveSubscription = subscriptions.find(s => 
     s.status === 'active' && 
-    s.paid_at && 
     s.subscription_ends_at && 
     isAfter(new Date(s.subscription_ends_at), now)
   );
