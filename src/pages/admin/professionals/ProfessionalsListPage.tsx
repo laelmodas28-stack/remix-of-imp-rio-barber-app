@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { AdminPageScaffold } from "@/components/admin/shared/AdminPageScaffold";
 import { UserCircle, Star, MoreVertical, Pencil, Trash2, Crown, AlertTriangle } from "lucide-react";
 import { useBarbershop } from "@/hooks/useBarbershop";
+import { useBarbershopContext } from "@/hooks/useBarbershopContext";
 import { useProfessionalLimit, getProfessionalLimitMessage } from "@/hooks/useProfessionalLimit";
 import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -38,6 +40,7 @@ interface Professional {
 
 export function ProfessionalsListPage() {
   const { barbershop } = useBarbershop();
+  const { baseUrl } = useBarbershopContext();
   const { currentCount, maxAllowed, canAddMore, planName, isLoading: isLoadingLimit } = useProfessionalLimit(barbershop?.id);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProfessional, setEditingProfessional] = useState<Professional | null>(null);
@@ -123,7 +126,7 @@ export function ProfessionalsListPage() {
               {getProfessionalLimitMessage(currentCount, maxAllowed, planName)}
               {!canAddMore && (
                 <Button variant="link" asChild className="ml-2 p-0 h-auto text-primary">
-                  <a href="/planos">Fazer upgrade</a>
+                  <Link to={`${baseUrl}/planos`}>Fazer upgrade</Link>
                 </Button>
               )}
             </AlertDescription>
