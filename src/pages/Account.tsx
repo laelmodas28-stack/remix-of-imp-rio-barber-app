@@ -13,6 +13,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Calendar, Clock, Scissors, User, Edit2, Save, X, Loader2, Shield, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { SubscriptionSummary } from "@/components/account/SubscriptionSummary";
 
 const Account = () => {
   const { user, loading: authLoading } = useAuth();
@@ -237,6 +238,11 @@ const Account = () => {
             <h1 className="text-4xl font-bold mb-2">Minha Conta</h1>
             <p className="text-muted-foreground">Gerencie seus dados e agendamentos</p>
           </div>
+
+          {/* Subscription Summary for barbershop admins */}
+          {userRole?.role === 'admin' && userRole?.barbershop_id && (
+            <SubscriptionSummary barbershopId={userRole.barbershop_id} />
+          )}
 
           {/* Profile Card */}
           <Card className="border-border mb-8">
