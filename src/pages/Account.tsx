@@ -44,22 +44,27 @@ const Account = () => {
     enabled: !!user,
   });
 
-  // Get user role
-  const { data: userRole } = useQuery({
-    queryKey: ["user-role", user?.id],
+  // Get user roles (user can be admin of multiple barbershops)
+  const { data: userRoles } = useQuery({
+    queryKey: ["user-roles", user?.id],
     queryFn: async () => {
-      if (!user) return null;
+      if (!user) return [];
       const { data, error } = await supabase
         .from("user_roles")
         .select("role, barbershop_id")
-        .eq("user_id", user.id)
-        .maybeSingle();
+        .eq("user_id", user.id);
       
       if (error) throw error;
-      return data;
+      return data || [];
     },
     enabled: !!user,
   });
+
+  // Get the primary role for display (prioritize admin)
+  const primaryRole = userRoles?.find(r => r.role === 'admin') || userRoles?.[0];
+  
+  // Get barbershop IDs where user is admin
+  const adminBarbershopIds = userRoles?.filter(r => r.role === 'admin').map(r => r.barbershop_id) || [];
 
   const { data: bookings } = useQuery({
     queryKey: ["bookings", user?.id],
@@ -240,9 +245,9 @@ const Account = () => {
           </div>
 
           {/* Subscription Summary for barbershop admins */}
-          {userRole?.role === 'admin' && userRole?.barbershop_id && (
-            <SubscriptionSummary barbershopId={userRole.barbershop_id} />
-          )}
+          {adminBarbershopIds.length > 0 && adminBarbershopIds.map((barbershopId) => (
+            <SubscriptionSummary key={barbershopId} barbershopId={barbershopId} />
+          ))}
 
           {/* Profile Card */}
           <Card className="border-border mb-8">
@@ -332,9 +337,9 @@ const Account = () => {
                   <div>
                     <p className="text-sm text-muted-foreground">Função</p>
                     <div className="flex items-center gap-2 mt-1">
-                      {userRole?.role === "admin" && <Shield className="w-4 h-4 text-primary" />}
-                      <Badge className={getRoleBadgeColor(userRole?.role || "client")}>
-                        {getRoleLabel(userRole?.role || "client")}
+                      {primaryRole?.role === "admin" && <Shield className="w-4 h-4 text-primary" />}
+                      <Badge className={getRoleBadgeColor(primaryRole?.role || "client")}>
+                        {getRoleLabel(primaryRole?.role || "client")}
                       </Badge>
                     </div>
                   </div>
