@@ -189,7 +189,10 @@ export function AdminSidebar() {
                           <SidebarMenuSub>
                             {group.children.map(child => <SidebarMenuSubItem key={child.id}>
                                 <SidebarMenuSubButton asChild className={`${isRouteActive(currentPath, child.path) ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:text-sidebar-foreground hover:bg-muted"}`}>
-                                  
+                                  <Link to={`${adminBaseUrl}/${child.path}`}>
+                                    <child.icon className="h-4 w-4 shrink-0" />
+                                    <span>{child.label}</span>
+                                  </Link>
                                 </SidebarMenuSubButton>
                               </SidebarMenuSubItem>)}
                           </SidebarMenuSub>
