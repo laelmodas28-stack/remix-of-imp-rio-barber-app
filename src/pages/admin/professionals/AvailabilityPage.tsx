@@ -654,75 +654,73 @@ export function AvailabilityPage() {
         </TabsContent>
 
         <TabsContent value="calendar">
-          <Card className="card-elevated">
-            <CardHeader className="pb-3 px-3 sm:px-6">
+          <Card className="card-elevated overflow-hidden">
+            <CardHeader className="pb-2 px-2 sm:px-6">
               {/* Mobile-first responsive layout */}
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                {/* Navigation controls */}
-                <div className="flex items-center gap-1 sm:gap-2">
-                  <Button variant="outline" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => setCurrentWeek(subWeeks(currentWeek, 1))}>
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => setCurrentWeek(addWeeks(currentWeek, 1))}>
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" className="h-8 text-xs sm:text-sm" onClick={() => setCurrentWeek(startOfWeek(new Date(), { weekStartsOn: 0 }))}>
-                    Hoje
-                  </Button>
-                  {/* Date range - inline on mobile, separate on desktop */}
-                  <span className="text-xs sm:text-sm font-medium text-muted-foreground sm:hidden ml-1">
-                    {format(weekDays[0], "d/MM", { locale: ptBR })} - {format(weekDays[6], "d/MM", { locale: ptBR })}
+              <div className="flex flex-col gap-2">
+                {/* Top row: navigation + date */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <Button variant="outline" size="icon" className="h-7 w-7 sm:h-9 sm:w-9" onClick={() => setCurrentWeek(subWeeks(currentWeek, 1))}>
+                      <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    </Button>
+                    <Button variant="outline" size="icon" className="h-7 w-7 sm:h-9 sm:w-9" onClick={() => setCurrentWeek(addWeeks(currentWeek, 1))}>
+                      <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-7 text-[10px] sm:text-sm px-2" onClick={() => setCurrentWeek(startOfWeek(new Date(), { weekStartsOn: 0 }))}>
+                      Hoje
+                    </Button>
+                  </div>
+                  
+                  {/* Date range */}
+                  <span className="text-[10px] sm:text-sm font-medium">
+                    <span className="sm:hidden">{format(weekDays[0], "d", { locale: ptBR })}-{format(weekDays[6], "d MMM", { locale: ptBR })}</span>
+                    <span className="hidden sm:inline">{format(weekDays[0], "d MMM", { locale: ptBR })} - {format(weekDays[6], "d MMM yyyy", { locale: ptBR })}</span>
                   </span>
                 </div>
                 
-                {/* Date range - desktop only */}
-                <CardTitle className="text-sm sm:text-base hidden sm:block">
-                  {format(weekDays[0], "d MMM", { locale: ptBR })} - {format(weekDays[6], "d MMM yyyy", { locale: ptBR })}
-                </CardTitle>
-                
-                {/* Legend */}
-                <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs flex-wrap">
+                {/* Legend row */}
+                <div className="flex items-center gap-3 text-[9px] sm:text-xs">
                   <div className="flex items-center gap-1">
-                    <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded bg-primary/20 border border-primary" />
+                    <div className="w-2 h-2 sm:w-3 sm:h-3 rounded bg-primary/20 border border-primary" />
                     <span>Disponível</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded bg-orange-500" />
+                    <div className="w-2 h-2 sm:w-3 sm:h-3 rounded bg-orange-500" />
                     <span>Bloqueio</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded bg-muted" />
+                    <div className="w-2 h-2 sm:w-3 sm:h-3 rounded bg-muted" />
                     <span>Folga</span>
                   </div>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-0">
-              <ScrollArea className="w-full">
-                <div className="min-w-[600px] sm:min-w-[800px]">
-                  {/* Header with days */}
-                  <div className="grid grid-cols-[80px_repeat(7,1fr)] sm:grid-cols-[120px_repeat(7,1fr)] border-b">
-                    <div className="p-2 sm:p-3 font-medium text-xs sm:text-sm text-muted-foreground border-r">
-                      Profissional
-                    </div>
-                    {weekDays.map((day, idx) => {
-                      const isToday = isSameDay(day, new Date());
-                      return (
-                        <div
-                          key={idx}
-                          className={cn(
-                            "p-1.5 sm:p-3 text-center border-r last:border-r-0",
-                            isToday && "bg-primary/5"
-                          )}
-                        >
-                          <p className="text-[10px] sm:text-xs text-muted-foreground">{DAYS_OF_WEEK[idx].short}</p>
-                          <p className={cn("text-xs sm:text-sm font-medium", isToday && "text-primary")}>
-                            {format(day, "d")}
-                          </p>
-                        </div>
-                      );
-                    })}
+            <CardContent className="p-0 overflow-x-auto">
+              <div className="min-w-full">
+                {/* Header with days */}
+                <div className="grid grid-cols-[60px_repeat(7,1fr)] sm:grid-cols-[100px_repeat(7,1fr)] border-b">
+                  <div className="p-1 sm:p-2 font-medium text-[9px] sm:text-xs text-muted-foreground border-r truncate">
+                    Profissional
                   </div>
+                  {weekDays.map((day, idx) => {
+                    const isToday = isSameDay(day, new Date());
+                    return (
+                      <div
+                        key={idx}
+                        className={cn(
+                          "p-1 sm:p-2 text-center border-r last:border-r-0",
+                          isToday && "bg-primary/5"
+                        )}
+                      >
+                        <p className="text-[8px] sm:text-xs text-muted-foreground">{DAYS_OF_WEEK[idx].short}</p>
+                        <p className={cn("text-[10px] sm:text-sm font-medium", isToday && "text-primary")}>
+                          {format(day, "d")}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
 
                   {/* Professionals rows */}
                   {loadingProfessionals ? (
@@ -733,13 +731,13 @@ export function AvailabilityPage() {
                     </div>
                   ) : professionals && professionals.length > 0 ? (
                     professionals.map((prof) => (
-                      <div key={prof.id} className="grid grid-cols-[80px_repeat(7,1fr)] sm:grid-cols-[120px_repeat(7,1fr)] border-b last:border-b-0">
-                        <div className="p-1.5 sm:p-3 flex items-center gap-1.5 sm:gap-2 border-r bg-muted/30 min-w-0">
-                          <Avatar className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0">
+                      <div key={prof.id} className="grid grid-cols-[60px_repeat(7,1fr)] sm:grid-cols-[100px_repeat(7,1fr)] border-b last:border-b-0">
+                        <div className="p-1 sm:p-2 flex items-center gap-1 sm:gap-2 border-r bg-muted/30 min-w-0">
+                          <Avatar className="h-5 w-5 sm:h-7 sm:w-7 flex-shrink-0">
                             <AvatarImage src={prof.photo_url || undefined} />
-                            <AvatarFallback className="text-[10px] sm:text-xs">{prof.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                            <AvatarFallback className="text-[8px] sm:text-xs">{prof.name.slice(0, 2).toUpperCase()}</AvatarFallback>
                           </Avatar>
-                          <span className="text-xs sm:text-sm font-medium truncate">{prof.name}</span>
+                          <span className="text-[9px] sm:text-sm font-medium truncate">{prof.name}</span>
                         </div>
                         {weekDays.map((day, dayIdx) => {
                           const { availability: avail, blocks } = getProfessionalDayData(prof.id, dayIdx, day);
@@ -750,11 +748,11 @@ export function AvailabilityPage() {
                               <div
                                 key={dayIdx}
                                 className={cn(
-                                  "p-1 sm:p-2 border-r last:border-r-0 bg-muted/50 flex items-center justify-center",
+                                  "p-0.5 sm:p-2 border-r last:border-r-0 bg-muted/50 flex items-center justify-center",
                                   isToday && "bg-primary/5"
                                 )}
                               >
-                                <span className="text-[10px] sm:text-xs text-muted-foreground">Folga</span>
+                                <span className="text-[8px] sm:text-xs text-muted-foreground">Folga</span>
                               </div>
                             );
                           }
@@ -763,14 +761,14 @@ export function AvailabilityPage() {
                             <div
                               key={dayIdx}
                               className={cn(
-                                "p-0.5 sm:p-1 border-r last:border-r-0 min-h-[60px] sm:min-h-[80px]",
+                                "p-0.5 border-r last:border-r-0 min-h-[50px] sm:min-h-[70px]",
                                 isToday && "bg-primary/5"
                               )}
                             >
                               <TooltipProvider>
                                 <div className="space-y-0.5">
                                   {/* Working hours indicator */}
-                                  <div className="text-[8px] sm:text-[10px] text-muted-foreground text-center mb-0.5 sm:mb-1 truncate">
+                                  <div className="text-[7px] sm:text-[10px] text-muted-foreground text-center truncate leading-tight">
                                     {avail.start_time.slice(0, 5)}-{avail.end_time.slice(0, 5)}
                                   </div>
                                   
@@ -782,11 +780,11 @@ export function AvailabilityPage() {
                                         <TooltipTrigger asChild>
                                           <div
                                             className={cn(
-                                              "rounded px-1 py-0.5 text-[10px] text-white truncate cursor-pointer",
+                                              "rounded px-0.5 py-0.5 text-[7px] sm:text-[10px] text-white truncate cursor-pointer leading-tight",
                                               typeInfo.color
                                             )}
                                           >
-                                            {block.start_time.slice(0, 5)} {block.title}
+                                            <span className="hidden sm:inline">{block.start_time.slice(0, 5)} </span>{block.title}
                                           </div>
                                         </TooltipTrigger>
                                         <TooltipContent>
@@ -798,7 +796,7 @@ export function AvailabilityPage() {
                                   })}
 
                                   {blocks.length === 0 && (
-                                    <div className="h-8 rounded bg-primary/10 border border-primary/20" />
+                                    <div className="h-6 sm:h-8 rounded bg-primary/10 border border-primary/20" />
                                   )}
                                 </div>
                               </TooltipProvider>
@@ -812,8 +810,7 @@ export function AvailabilityPage() {
                       Nenhum profissional cadastrado
                     </div>
                   )}
-                </div>
-              </ScrollArea>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
