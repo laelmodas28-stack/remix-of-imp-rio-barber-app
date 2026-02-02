@@ -224,20 +224,20 @@ export function WhatsAppSimpleCard({ barbershopId, barbershopSlug, settings, onS
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${isConnected ? "bg-green-500/10" : "bg-muted"}`}>
+      <CardHeader className="p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`p-2 rounded-lg flex-shrink-0 ${isConnected ? "bg-green-500/10" : "bg-muted"}`}>
               <MessageCircle className={`w-5 h-5 ${isConnected ? "text-green-500" : "text-muted-foreground"}`} />
             </div>
-            <div>
+            <div className="min-w-0">
               <CardTitle className="text-base">WhatsApp</CardTitle>
-              <CardDescription>
+              <CardDescription className="text-xs sm:text-sm line-clamp-2">
                 Envie mensagens automáticas para seus clientes
               </CardDescription>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between sm:justify-end gap-2 mt-2 sm:mt-0 flex-shrink-0">
             {getStatusBadge()}
             <Switch
               checked={settings.whatsapp_enabled}
@@ -246,15 +246,15 @@ export function WhatsAppSimpleCard({ barbershopId, barbershopSlug, settings, onS
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 p-4 sm:p-6 pt-0 sm:pt-0">
         {/* Connection Status & QR Code */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="space-y-3 sm:space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <h4 className="text-sm font-medium flex items-center gap-2">
-              <Smartphone className="w-4 h-4" />
-              Conexão WhatsApp
+              <Smartphone className="w-4 h-4 flex-shrink-0" />
+              <span>Conexão WhatsApp</span>
             </h4>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               {isConnected && (
                 <Button
                   type="button"
@@ -262,12 +262,12 @@ export function WhatsAppSimpleCard({ barbershopId, barbershopSlug, settings, onS
                   size="sm"
                   onClick={handleDisconnect}
                   disabled={isDisconnecting}
-                  className="text-orange-600 hover:text-orange-700"
+                  className="text-orange-600 hover:text-orange-700 text-xs sm:text-sm h-8"
                 >
                   {isDisconnecting ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 animate-spin" />
                   ) : (
-                    <LogOut className="w-4 h-4 mr-2" />
+                    <LogOut className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                   )}
                   Desconectar
                 </Button>
@@ -278,8 +278,9 @@ export function WhatsAppSimpleCard({ barbershopId, barbershopSlug, settings, onS
                 size="sm"
                 onClick={checkStatus}
                 disabled={isLoadingStatus}
+                className="text-xs sm:text-sm h-8"
               >
-                <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingStatus ? "animate-spin" : ""}`} />
+                <RefreshCw className={`w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 ${isLoadingStatus ? "animate-spin" : ""}`} />
                 Atualizar
               </Button>
             </div>
@@ -366,17 +367,18 @@ export function WhatsAppSimpleCard({ barbershopId, barbershopSlug, settings, onS
         <div className="space-y-4">
           <h4 className="text-sm font-medium">Tipos de Mensagem</h4>
           
-          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-            <div className="flex items-center gap-3">
-              <Send className="w-5 h-5 text-green-500" />
-              <div>
-                <p className="text-sm font-medium">Confirmação de Agendamento</p>
-                <p className="text-xs text-muted-foreground">
+          <div className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/30">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <Send className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-medium">Confirmação de Agendamento</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-2">
                   Enviar mensagem quando um agendamento é criado
                 </p>
               </div>
             </div>
             <Switch
+              className="flex-shrink-0"
               checked={settings.whatsapp_send_booking_confirmation}
               onCheckedChange={(checked) => 
                 updateSetting("whatsapp_send_booking_confirmation", checked)
@@ -385,17 +387,18 @@ export function WhatsAppSimpleCard({ barbershopId, barbershopSlug, settings, onS
             />
           </div>
 
-          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-            <div className="flex items-center gap-3">
-              <Bell className="w-5 h-5 text-yellow-500" />
-              <div>
-                <p className="text-sm font-medium">Lembrete de Agendamento</p>
-                <p className="text-xs text-muted-foreground">
+          <div className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/30">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-medium">Lembrete de Agendamento</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-2">
                   Enviar lembrete antes do horário marcado
                 </p>
               </div>
             </div>
             <Switch
+              className="flex-shrink-0"
               checked={settings.whatsapp_send_booking_reminder}
               onCheckedChange={(checked) => 
                 updateSetting("whatsapp_send_booking_reminder", checked)
