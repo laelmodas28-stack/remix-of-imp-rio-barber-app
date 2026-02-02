@@ -655,52 +655,52 @@ export function AvailabilityPage() {
 
         <TabsContent value="calendar">
           <Card className="card-elevated overflow-hidden">
-            <CardHeader className="pb-3 px-3 sm:px-6">
+            <CardHeader className="pb-4 px-4 sm:px-6">
               {/* Mobile-first responsive layout */}
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-4">
                 {/* Top row: navigation + date */}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <Button variant="outline" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => setCurrentWeek(subWeeks(currentWeek, 1))}>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentWeek(subWeeks(currentWeek, 1))}>
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => setCurrentWeek(addWeeks(currentWeek, 1))}>
+                    <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentWeek(addWeeks(currentWeek, 1))}>
                       <ChevronRight className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="sm" className="h-8 text-xs sm:text-sm px-2" onClick={() => setCurrentWeek(startOfWeek(new Date(), { weekStartsOn: 0 }))}>
+                    <Button variant="ghost" size="sm" className="h-9 text-sm px-3" onClick={() => setCurrentWeek(startOfWeek(new Date(), { weekStartsOn: 0 }))}>
                       Hoje
                     </Button>
                   </div>
                   
                   {/* Date range */}
-                  <span className="text-xs sm:text-sm font-medium">
+                  <span className="text-sm font-medium">
                     <span className="sm:hidden">{format(weekDays[0], "d", { locale: ptBR })}-{format(weekDays[6], "d MMM", { locale: ptBR })}</span>
                     <span className="hidden sm:inline">{format(weekDays[0], "d MMM", { locale: ptBR })} - {format(weekDays[6], "d MMM yyyy", { locale: ptBR })}</span>
                   </span>
                 </div>
                 
                 {/* Legend row */}
-                <div className="flex items-center gap-4 text-[10px] sm:text-xs">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded bg-primary/20 border border-primary" />
+                <div className="flex items-center gap-4 sm:gap-6 text-xs sm:text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-primary/20 border-2 border-primary" />
                     <span>Disponível</span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded bg-orange-500" />
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-orange-500" />
                     <span>Bloqueio</span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded bg-muted" />
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-muted" />
                     <span>Folga</span>
                   </div>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="p-0 overflow-x-auto">
-              <div className="min-w-full">
+              <div className="min-w-[640px] sm:min-w-full">
                 {/* Header with days */}
-                <div className="grid grid-cols-[70px_repeat(7,1fr)] sm:grid-cols-[110px_repeat(7,1fr)] border-b">
-                  <div className="p-2 sm:p-3 font-medium text-[10px] sm:text-xs text-muted-foreground border-r">
+                <div className="grid grid-cols-[100px_repeat(7,1fr)] sm:grid-cols-[140px_repeat(7,1fr)] border-b">
+                  <div className="p-3 font-medium text-xs sm:text-sm text-muted-foreground border-r">
                     Profissional
                   </div>
                   {weekDays.map((day, idx) => {
@@ -709,12 +709,12 @@ export function AvailabilityPage() {
                       <div
                         key={idx}
                         className={cn(
-                          "p-1.5 sm:p-2 text-center border-r last:border-r-0",
+                          "p-2 sm:p-3 text-center border-r last:border-r-0",
                           isToday && "bg-primary/5"
                         )}
                       >
-                        <p className="text-[9px] sm:text-xs text-muted-foreground">{DAYS_OF_WEEK[idx].short}</p>
-                        <p className={cn("text-xs sm:text-sm font-medium", isToday && "text-primary")}>
+                        <p className="text-[11px] sm:text-xs text-muted-foreground font-medium">{DAYS_OF_WEEK[idx].short}</p>
+                        <p className={cn("text-base sm:text-lg font-bold", isToday && "text-primary")}>
                           {format(day, "d")}
                         </p>
                       </div>
@@ -726,18 +726,18 @@ export function AvailabilityPage() {
                   {loadingProfessionals ? (
                     <div className="p-4 space-y-4">
                       {[1, 2, 3].map((i) => (
-                        <Skeleton key={i} className="h-16 w-full" />
+                        <Skeleton key={i} className="h-20 w-full" />
                       ))}
                     </div>
                   ) : professionals && professionals.length > 0 ? (
                     professionals.map((prof) => (
-                      <div key={prof.id} className="grid grid-cols-[70px_repeat(7,1fr)] sm:grid-cols-[110px_repeat(7,1fr)] border-b last:border-b-0">
-                        <div className="p-1.5 sm:p-2 flex items-center gap-1.5 sm:gap-2 border-r bg-muted/30 min-w-0">
-                          <Avatar className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0">
+                      <div key={prof.id} className="grid grid-cols-[100px_repeat(7,1fr)] sm:grid-cols-[140px_repeat(7,1fr)] border-b last:border-b-0">
+                        <div className="p-2 sm:p-3 flex items-center gap-2 border-r bg-muted/30 min-w-0">
+                          <Avatar className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0">
                             <AvatarImage src={prof.photo_url || undefined} />
-                            <AvatarFallback className="text-[9px] sm:text-xs">{prof.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                            <AvatarFallback className="text-xs sm:text-sm">{prof.name.slice(0, 2).toUpperCase()}</AvatarFallback>
                           </Avatar>
-                          <span className="text-[10px] sm:text-sm font-medium truncate">{prof.name}</span>
+                          <span className="text-xs sm:text-sm font-medium truncate leading-tight">{prof.name}</span>
                         </div>
                         {weekDays.map((day, dayIdx) => {
                           const { availability: avail, blocks } = getProfessionalDayData(prof.id, dayIdx, day);
@@ -748,11 +748,11 @@ export function AvailabilityPage() {
                               <div
                                 key={dayIdx}
                                 className={cn(
-                                  "p-1 sm:p-2 border-r last:border-r-0 bg-muted/50 flex items-center justify-center min-h-[55px] sm:min-h-[70px]",
+                                  "p-2 border-r last:border-r-0 bg-muted/50 flex items-center justify-center min-h-[70px] sm:min-h-[80px]",
                                   isToday && "bg-primary/5"
                                 )}
                               >
-                                <span className="text-[9px] sm:text-xs text-muted-foreground">Folga</span>
+                                <span className="text-xs sm:text-sm text-muted-foreground font-medium">Folga</span>
                               </div>
                             );
                           }
@@ -761,14 +761,14 @@ export function AvailabilityPage() {
                             <div
                               key={dayIdx}
                               className={cn(
-                                "p-1 border-r last:border-r-0 min-h-[55px] sm:min-h-[70px]",
+                                "p-1.5 sm:p-2 border-r last:border-r-0 min-h-[70px] sm:min-h-[80px]",
                                 isToday && "bg-primary/5"
                               )}
                             >
                               <TooltipProvider>
-                                <div className="space-y-0.5">
+                                <div className="space-y-1">
                                   {/* Working hours indicator */}
-                                  <div className="text-[8px] sm:text-[10px] text-muted-foreground text-center truncate leading-tight">
+                                  <div className="text-[10px] sm:text-xs text-muted-foreground text-center font-medium">
                                     {avail.start_time.slice(0, 5)}-{avail.end_time.slice(0, 5)}
                                   </div>
                                   
@@ -780,7 +780,7 @@ export function AvailabilityPage() {
                                         <TooltipTrigger asChild>
                                           <div
                                             className={cn(
-                                              "rounded px-1 py-0.5 text-[8px] sm:text-[10px] text-white truncate cursor-pointer leading-tight",
+                                              "rounded px-1.5 py-1 text-[10px] sm:text-xs text-white truncate cursor-pointer font-medium",
                                               typeInfo.color
                                             )}
                                           >
@@ -796,7 +796,7 @@ export function AvailabilityPage() {
                                   })}
 
                                   {blocks.length === 0 && (
-                                    <div className="h-7 sm:h-8 rounded bg-primary/10 border border-primary/20" />
+                                    <div className="h-8 sm:h-10 rounded bg-primary/10 border-2 border-primary/20" />
                                   )}
                                 </div>
                               </TooltipProvider>
