@@ -57,7 +57,7 @@ export const WeeklyCalendar = ({ selected, onSelect, disabled }: WeeklyCalendarP
       </div>
 
       {/* Dias da semana */}
-      <div className="grid grid-cols-7 gap-2">
+      <div className="grid grid-cols-7 gap-1 sm:gap-2">
         {weekDays.map((day) => {
           const isSelected = selected && isSameDay(day, selected);
           const isDisabled = disabled?.(day) ?? false;
@@ -69,8 +69,8 @@ export const WeeklyCalendar = ({ selected, onSelect, disabled }: WeeklyCalendarP
               onClick={() => !isDisabled && onSelect(day)}
               disabled={isDisabled}
               className={cn(
-                "flex flex-col items-center justify-center p-2 rounded-lg transition-all",
-                "min-h-[72px] border-2",
+                "flex flex-col items-center justify-center p-1 sm:p-2 rounded-lg transition-all",
+                "min-h-[60px] sm:min-h-[72px] border sm:border-2",
                 isDisabled && "opacity-40 cursor-not-allowed",
                 !isDisabled && !isSelected && "hover:border-primary/50 hover:bg-primary/5 cursor-pointer",
                 isSelected && "border-primary bg-primary text-primary-foreground",
@@ -79,20 +79,20 @@ export const WeeklyCalendar = ({ selected, onSelect, disabled }: WeeklyCalendarP
               )}
             >
               <span className={cn(
-                "text-xs uppercase font-medium",
+                "text-[10px] sm:text-xs uppercase font-medium",
                 isSelected ? "text-primary-foreground/80" : "text-muted-foreground"
               )}>
                 {format(day, "EEE", { locale: ptBR })}
               </span>
               <span className={cn(
-                "text-xl font-bold",
+                "text-base sm:text-xl font-bold",
                 isSelected ? "text-primary-foreground" : "text-foreground"
               )}>
                 {format(day, "d")}
               </span>
               {dayIsToday && (
                 <span className={cn(
-                  "text-[10px] uppercase font-medium",
+                  "text-[8px] sm:text-[10px] uppercase font-medium",
                   isSelected ? "text-primary-foreground/80" : "text-primary"
                 )}>
                   Hoje
