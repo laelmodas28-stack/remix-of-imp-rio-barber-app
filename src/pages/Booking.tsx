@@ -26,6 +26,7 @@ const Booking = () => {
   const [selectedProfessional, setSelectedProfessional] = useState(location.state?.selectedProfessional?.id || "");
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [notes, setNotes] = useState("");
 
   const { data: services } = useQuery({
@@ -215,6 +216,8 @@ const Booking = () => {
     
     if (!service || !professional) return;
 
+    setIsSubmitting(true);
+
     try {
       // First, ensure the user has a profile record (required for booking foreign key)
       const { data: existingProfile } = await supabase
@@ -237,6 +240,7 @@ const Booking = () => {
         if (profileError) {
           console.error("Erro ao criar perfil:", profileError);
           toast.error("Erro ao preparar cadastro. Tente novamente.");
+          setIsSubmitting(false);
           return;
         }
       }
@@ -262,31 +266,30 @@ const Booking = () => {
         .eq("id", user.id)
         .single();
 
-      // Enviar notificação
-      try {
-        await supabase.functions.invoke("send-booking-notification", {
-          body: {
-            bookingId: booking?.id,
-            barbershopId: barbershop.id,
-            clientEmail: user.email,
-            clientName: profile?.full_name || "Cliente",
-            clientPhone: profile?.phone,
-            date: format(selectedDate, "yyyy-MM-dd"),
-            time: selectedTime,
-            service: service.name,
-            professional: professional.name,
-            price: service.price,
-          },
-        });
-      } catch (notifError) {
+      // Enviar notificação em background (não bloquear o usuário)
+      supabase.functions.invoke("send-booking-notification", {
+        body: {
+          bookingId: booking?.id,
+          barbershopId: barbershop.id,
+          clientEmail: user.email,
+          clientName: profile?.full_name || "Cliente",
+          clientPhone: profile?.phone,
+          date: format(selectedDate, "yyyy-MM-dd"),
+          time: selectedTime,
+          service: service.name,
+          professional: professional.name,
+          price: service.price,
+        },
+      }).catch((notifError) => {
         console.error("Erro ao enviar notificação:", notifError);
-      }
+      });
 
       toast.success("Agendamento realizado com sucesso!");
       navigate("/account");
     } catch (error) {
       console.error("Erro ao criar agendamento:", error);
       toast.error("Erro ao criar agendamento");
+      setIsSubmitting(false);
     }
   };
 
@@ -448,9 +451,16 @@ const Booking = () => {
               size="xl" 
               className="w-full"
               onClick={handleBooking}
-              disabled={!selectedService || !selectedProfessional || !selectedDate || !selectedTime}
+              disabled={!selectedService || !selectedProfessional || !selectedDate || !selectedTime || isSubmitting}
             >
-              Confirmar Agendamento
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Processando...
+                </>
+              ) : (
+                "Confirmar Agendamento"
+              )}
             </Button>
           </div>
         </div>
