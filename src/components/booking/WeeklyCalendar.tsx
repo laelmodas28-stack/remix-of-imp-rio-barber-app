@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { format, addDays, startOfWeek, isSameDay, isToday, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface WeeklyCalendarProps {
   selected?: Date;
@@ -11,8 +12,12 @@ interface WeeklyCalendarProps {
   disabled?: (date: Date) => boolean;
 }
 
+// Abreviações curtas para mobile
+const SHORT_WEEKDAYS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+
 export const WeeklyCalendar = ({ selected, onSelect, disabled }: WeeklyCalendarProps) => {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 0 }));
+  const isMobile = useIsMobile();
 
   const weekDays = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -28,8 +33,17 @@ export const WeeklyCalendar = ({ selected, onSelect, disabled }: WeeklyCalendarP
 
   const canGoPrevious = !isBefore(addDays(weekStart, -1), startOfDay(new Date()));
 
+  // Retorna abreviação curta para o dia da semana
+  const getWeekdayLabel = (day: Date) => {
+    const dayOfWeek = day.getDay(); // 0 = domingo, 6 = sábado
+    if (isMobile) {
+      return SHORT_WEEKDAYS[dayOfWeek];
+    }
+    return format(day, "EEE", { locale: ptBR });
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {/* Header com navegação */}
       <div className="flex items-center justify-between">
         <Button
@@ -37,12 +51,12 @@ export const WeeklyCalendar = ({ selected, onSelect, disabled }: WeeklyCalendarP
           size="icon"
           onClick={goToPreviousWeek}
           disabled={!canGoPrevious}
-          className="h-8 w-8"
+          className="h-8 w-8 flex-shrink-0"
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
         
-        <span className="text-sm font-medium text-muted-foreground">
+        <span className="text-xs sm:text-sm font-medium text-muted-foreground capitalize">
           {format(weekStart, "MMMM yyyy", { locale: ptBR })}
         </span>
         
@@ -50,14 +64,14 @@ export const WeeklyCalendar = ({ selected, onSelect, disabled }: WeeklyCalendarP
           variant="ghost"
           size="icon"
           onClick={goToNextWeek}
-          className="h-8 w-8"
+          className="h-8 w-8 flex-shrink-0"
         >
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
 
       {/* Dias da semana */}
-      <div className="grid grid-cols-7 gap-1 sm:gap-2">
+      <div className="grid grid-cols-7 gap-1">
         {weekDays.map((day) => {
           const isSelected = selected && isSameDay(day, selected);
           const isDisabled = disabled?.(day) ?? false;
@@ -69,8 +83,10 @@ export const WeeklyCalendar = ({ selected, onSelect, disabled }: WeeklyCalendarP
               onClick={() => !isDisabled && onSelect(day)}
               disabled={isDisabled}
               className={cn(
-                "flex flex-col items-center justify-center p-1 sm:p-2 rounded-lg transition-all",
-                "min-h-[60px] sm:min-h-[72px] border sm:border-2",
+                "flex flex-col items-center justify-center rounded-md sm:rounded-lg transition-all",
+                "py-2 px-0.5 sm:p-2",
+                "min-h-[56px] sm:min-h-[72px]",
+                "border sm:border-2",
                 isDisabled && "opacity-40 cursor-not-allowed",
                 !isDisabled && !isSelected && "hover:border-primary/50 hover:bg-primary/5 cursor-pointer",
                 isSelected && "border-primary bg-primary text-primary-foreground",
@@ -79,20 +95,21 @@ export const WeeklyCalendar = ({ selected, onSelect, disabled }: WeeklyCalendarP
               )}
             >
               <span className={cn(
-                "text-[10px] sm:text-xs uppercase font-medium",
+                "text-[9px] sm:text-xs uppercase font-medium leading-tight",
+                "truncate max-w-full",
                 isSelected ? "text-primary-foreground/80" : "text-muted-foreground"
               )}>
-                {format(day, "EEE", { locale: ptBR })}
+                {getWeekdayLabel(day)}
               </span>
               <span className={cn(
-                "text-base sm:text-xl font-bold",
+                "text-lg sm:text-xl font-bold leading-tight",
                 isSelected ? "text-primary-foreground" : "text-foreground"
               )}>
                 {format(day, "d")}
               </span>
               {dayIsToday && (
                 <span className={cn(
-                  "text-[8px] sm:text-[10px] uppercase font-medium",
+                  "text-[7px] sm:text-[10px] uppercase font-medium leading-tight",
                   isSelected ? "text-primary-foreground/80" : "text-primary"
                 )}>
                   Hoje
