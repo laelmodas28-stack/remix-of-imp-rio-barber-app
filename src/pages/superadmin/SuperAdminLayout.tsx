@@ -10,7 +10,8 @@ import {
   LogOut,
   Shield,
   Loader2,
-  Settings
+  Settings,
+  Users
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import imperioLogo from "@/assets/imperio-barber-logo.jpg";
@@ -18,6 +19,7 @@ import imperioLogo from "@/assets/imperio-barber-logo.jpg";
 const navItems = [
   { href: "/superadmin", icon: LayoutDashboard, label: "Dashboard", exact: true },
   { href: "/superadmin/barbershops", icon: Building2, label: "Barbearias" },
+  { href: "/superadmin/users", icon: Users, label: "Usuários" },
   { href: "/superadmin/subscriptions", icon: CreditCard, label: "Assinaturas" },
   { href: "/superadmin/logs", icon: FileText, label: "Logs" },
   { href: "/superadmin/settings", icon: Settings, label: "Configurações" },
