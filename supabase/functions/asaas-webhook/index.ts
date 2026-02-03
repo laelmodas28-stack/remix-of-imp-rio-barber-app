@@ -24,6 +24,29 @@ interface AsaasWebhookEvent {
   payment?: AsaasWebhookPayment;
 }
 
+// Validate ASAAS webhook using access token authentication
+function validateAsaasWebhook(
+  accessToken: string | null,
+  expectedToken: string
+): boolean {
+  if (!accessToken) {
+    console.error('Missing asaas-access-token header');
+    return false;
+  }
+
+  // Use timing-safe comparison to prevent timing attacks
+  if (accessToken.length !== expectedToken.length) {
+    return false;
+  }
+
+  let result = 0;
+  for (let i = 0; i < accessToken.length; i++) {
+    result |= accessToken.charCodeAt(i) ^ expectedToken.charCodeAt(i);
+  }
+
+  return result === 0;
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -33,6 +56,34 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const webhookSecret = Deno.env.get('ASAAS_WEBHOOK_SECRET');
+
+    // Validate webhook secret is configured
+    if (!webhookSecret) {
+      console.error('ASAAS_WEBHOOK_SECRET not configured - rejecting webhook');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Webhook secret not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate the webhook access token
+    const accessToken = req.headers.get('asaas-access-token');
+    const isValidWebhook = validateAsaasWebhook(accessToken, webhookSecret);
+
+    if (!isValidWebhook) {
+      console.error('Invalid ASAAS webhook signature - potential forgery attempt', {
+        hasToken: !!accessToken,
+        remoteAddr: req.headers.get('x-forwarded-for') || 'unknown'
+      });
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid signature' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('ASAAS webhook signature validated successfully');
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body: AsaasWebhookEvent = await req.json();
