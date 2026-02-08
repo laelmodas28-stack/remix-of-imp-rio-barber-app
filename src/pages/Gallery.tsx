@@ -4,24 +4,28 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { X, ImageIcon } from "lucide-react";
+import { X, ImageIcon, Loader2 } from "lucide-react";
+import { useBarbershopContext } from "@/hooks/useBarbershopContext";
 
 const Gallery = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const { barbershop, isLoading: isBarbershopLoading } = useBarbershopContext();
 
   const { data: gallery, isLoading } = useQuery({
-    queryKey: ["public-gallery"],
+    queryKey: ["gallery", barbershop?.id],
     queryFn: async () => {
-      // Gallery should always be scoped to a specific barbershop
-      // This page requires a barbershop context to display
+      if (!barbershop?.id) return [];
+      
       const { data, error } = await supabase
         .from("gallery")
-        .select("*, barbershop:barbershops(name)")
+        .select("*")
+        .eq("barbershop_id", barbershop.id)
         .order("display_order");
       
       if (error) throw error;
       return data;
     },
+    enabled: !!barbershop?.id,
   });
 
   return (
@@ -36,9 +40,9 @@ const Gallery = () => {
           </p>
         </div>
 
-        {isLoading ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">Carregando galeria...</p>
+        {isBarbershopLoading || isLoading || !barbershop ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
         ) : gallery && gallery.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
