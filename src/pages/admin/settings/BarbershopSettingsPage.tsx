@@ -386,10 +386,10 @@ export function BarbershopSettingsPage() {
               <CardDescription>Configure os dias e horários de atendimento</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {Object.entries(businessHours).map(([day, hours]) => (
-                  <div key={day} className="flex items-center gap-4 p-3 rounded-lg bg-muted/30">
-                    <div className="flex items-center gap-2 w-40">
+                  <div key={day} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3 rounded-lg bg-muted/30">
+                    <div className="flex items-center gap-2 sm:w-40 shrink-0">
                       <Switch
                         checked={hours.enabled}
                         onCheckedChange={(checked) => handleHoursChange(day, "enabled", checked)}
@@ -398,21 +398,21 @@ export function BarbershopSettingsPage() {
                         {dayLabels[day]}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 flex-1">
+                    <div className="flex items-center gap-2 flex-1 pl-8 sm:pl-0">
                       <Input
                         type="time"
                         value={hours.open}
                         onChange={(e) => handleHoursChange(day, "open", e.target.value)}
                         disabled={!hours.enabled}
-                        className="w-28"
+                        className="w-full sm:w-28"
                       />
-                      <span className="text-muted-foreground">às</span>
+                      <span className="text-muted-foreground text-sm shrink-0">às</span>
                       <Input
                         type="time"
                         value={hours.close}
                         onChange={(e) => handleHoursChange(day, "close", e.target.value)}
                         disabled={!hours.enabled}
-                        className="w-28"
+                        className="w-full sm:w-28"
                       />
                     </div>
                   </div>
