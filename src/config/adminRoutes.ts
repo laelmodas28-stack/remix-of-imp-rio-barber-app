@@ -15,6 +15,7 @@ import {
   TrendingUp,
   CreditCard,
   FileText,
+  Crown,
   BarChart3,
   PieChart,
   UserCheck,
@@ -72,6 +73,7 @@ export const adminRoutes: RouteConfig[] = [
   { id: "services-catalog", label: "Catalogo", path: "services/catalog", icon: Scissors, parentId: "services", order: 1, description: "Servicos oferecidos", access: "admin" },
   { id: "services-pricing", label: "Precos", path: "services/pricing", icon: DollarSign, parentId: "services", order: 2, description: "Tabela de precos", access: "admin" },
   { id: "services-addons", label: "Adicionais", path: "services/add-ons", icon: PackagePlus, parentId: "services", order: 3, description: "Servicos complementares", access: "admin" },
+  { id: "services-subscriptions", label: "Assinaturas", path: "services/subscriptions", icon: Crown, parentId: "services", order: 4, description: "Planos de assinatura para clientes", access: "admin" },
 
   // Finance - Admin only
   { id: "finance-overview", label: "Visao Geral", path: "finance/overview", icon: Wallet, parentId: "finance", order: 1, description: "Resumo financeiro", access: "admin" },
