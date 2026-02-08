@@ -7,7 +7,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscriptions } from "@/hooks/useSubscriptions";
-import { useBarbershop } from "@/hooks/useBarbershop";
+import { useBarbershopContext } from "@/hooks/useBarbershopContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Check, Crown, Calendar, Award, Scissors, Loader2, CreditCard, QrCode } from "lucide-react";
@@ -26,7 +26,7 @@ const Subscriptions = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { barbershop } = useBarbershop();
+  const { barbershop } = useBarbershopContext();
   const { plans, plansLoading, clientSubscriptions, activeSubscription, refetchSubscriptions } = useSubscriptions(barbershop?.id);
   
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);

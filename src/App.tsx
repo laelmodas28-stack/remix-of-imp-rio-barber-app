@@ -51,6 +51,7 @@ import CommissionsPage from "./pages/admin/professionals/CommissionsPage";
 import ServicesCatalogPage from "./pages/admin/services/ServicesCatalogPage";
 import ServicesPricingPage from "./pages/admin/services/ServicesPricingPage";
 import ServicesAddonsPage from "./pages/admin/services/ServicesAddonsPage";
+import ServicesSubscriptionsPage from "./pages/admin/services/SubscriptionsPage";
 
 // Finance
 import FinanceOverviewPage from "./pages/admin/finance/FinanceOverviewPage";
@@ -187,6 +188,7 @@ const App = () => (
                     <Route path="services/catalog" element={<ServicesCatalogPage />} />
                     <Route path="services/pricing" element={<ServicesPricingPage />} />
                     <Route path="services/add-ons" element={<ServicesAddonsPage />} />
+                    <Route path="services/subscriptions" element={<ServicesSubscriptionsPage />} />
                     
                     {/* Finance */}
                     <Route path="finance/overview" element={<FinanceOverviewPage />} />
