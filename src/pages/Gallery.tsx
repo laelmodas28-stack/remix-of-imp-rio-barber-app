@@ -12,6 +12,8 @@ const Gallery = () => {
   const { data: gallery, isLoading } = useQuery({
     queryKey: ["public-gallery"],
     queryFn: async () => {
+      // Gallery should always be scoped to a specific barbershop
+      // This page requires a barbershop context to display
       const { data, error } = await supabase
         .from("gallery")
         .select("*, barbershop:barbershops(name)")
