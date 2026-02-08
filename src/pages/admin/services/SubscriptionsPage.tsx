@@ -42,6 +42,7 @@ interface SubscriptionPlanFormData {
   max_services_per_month: string;
   discount_percentage: string;
   services_included: string[];
+  benefits: string[];
 }
 
 const initialFormData: SubscriptionPlanFormData = {
@@ -52,6 +53,7 @@ const initialFormData: SubscriptionPlanFormData = {
   max_services_per_month: "",
   discount_percentage: "",
   services_included: [],
+  benefits: [],
 };
 
 export function SubscriptionsPage() {
@@ -124,6 +126,7 @@ export function SubscriptionsPage() {
         services_included: data.services_included,
         max_services_per_month: data.max_services_per_month ? parseInt(data.max_services_per_month) : null,
         discount_percentage: data.discount_percentage ? parseFloat(data.discount_percentage) : null,
+        benefits: data.benefits.filter(b => b.trim() !== ""),
       };
 
       if (editingPlan) {
@@ -202,8 +205,30 @@ export function SubscriptionsPage() {
       max_services_per_month: plan.max_services_per_month?.toString() || "",
       discount_percentage: plan.discount_percentage?.toString() || "",
       services_included: plan.services_included || [],
+      benefits: plan.benefits || [],
     });
     setIsFormOpen(true);
+  };
+
+  const handleAddBenefit = () => {
+    setFormData(prev => ({
+      ...prev,
+      benefits: [...prev.benefits, ""],
+    }));
+  };
+
+  const handleRemoveBenefit = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      benefits: prev.benefits.filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleBenefitChange = (index: number, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      benefits: prev.benefits.map((b, i) => i === index ? value : b),
+    }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -489,7 +514,44 @@ export function SubscriptionsPage() {
             </div>
 
             <div className="space-y-3">
-              <Label>Serviços Incluídos</Label>
+              <div className="flex items-center justify-between">
+                <Label>Benefícios do Plano</Label>
+                <Button type="button" variant="outline" size="sm" onClick={handleAddBenefit}>
+                  <Plus className="w-3 h-3 mr-1" />
+                  Adicionar
+                </Button>
+              </div>
+              <div className="space-y-2 p-4 bg-muted/30 rounded-lg">
+                {formData.benefits.length > 0 ? (
+                  formData.benefits.map((benefit, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <Input
+                        value={benefit}
+                        onChange={(e) => handleBenefitChange(index, e.target.value)}
+                        placeholder="Ex: 4 cortes por mês"
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRemoveBenefit(index)}
+                        className="text-destructive shrink-0"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-2">
+                    Clique em "Adicionar" para incluir benefícios
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label>Serviços Incluídos (opcional)</Label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 bg-muted/30 rounded-lg max-h-48 overflow-y-auto">
                 {services?.length ? (
                   services.map((service) => (

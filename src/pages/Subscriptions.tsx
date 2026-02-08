@@ -252,12 +252,14 @@ const Subscriptions = () => {
                         Benefícios:
                       </p>
                       <ul className="space-y-1 ml-6">
-                        {plan.services_included && plan.services_included.length > 0 ? (
-                          plan.services_included.map((service, idx) => (
+                        {plan.benefits && plan.benefits.length > 0 ? (
+                          plan.benefits.map((benefit: string, idx: number) => (
                             <li key={idx} className="text-sm text-muted-foreground">
-                              • {service}
+                              • {benefit}
                             </li>
                           ))
+                        ) : plan.description ? (
+                          <li className="text-sm text-muted-foreground">• {plan.description}</li>
                         ) : (
                           <li className="text-sm text-muted-foreground">• Acesso aos serviços</li>
                         )}
